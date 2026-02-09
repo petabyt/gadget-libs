@@ -1,0 +1,3 @@
+[submodule "libfuji"]
+	path = libfuji
+	url = git@github.com:petabyt/libfuji.git
