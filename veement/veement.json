@@ -1,0 +1,14 @@
+{
+  "name": "Veecar",
+  "description": "Supports Veement/Veecar dashcams",
+  "author": "Daniel Cook",
+  "version": 1,
+  "isDraft": true,
+  "targets": [
+    {
+      "deviceType": "dashcam",
+      "company": "Veement",
+      "products": ["V300", "V200", "S80", "VT10"]
+    }
+  ]
+}
