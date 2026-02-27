@@ -1,7 +1,7 @@
 import { WiFi } from "pak:wifi";
 import { Module } from "pak:runtime";
+import { BufferWriter, BufferReader } from "pak:buffer";
 import * as net from "c:socket";
-import { BufferWriter, BufferReader } from "../ts/dist/buffer.js";
 
 // http://192.168.169.1/app/getdeviceattr
 // http://192.168.169.1:80/app/settimezone?timezone=-5
@@ -124,9 +124,4 @@ class Veement extends Module {
 		return [head, contents];
 	}
 };
-
-try {
-	Module.test(new Veement());
-} catch (e) {
-	console.log(e);
-}
+Module.export(new Veement());

@@ -11,3 +11,6 @@ install_libfuji:
 install_veement:
 	cp veement/veement.json $(OUT_DIR)/
 	cp veement/veement.js $(OUT_DIR)/
+
+clean:
+	rm -rf $(OUT_DIR)/*
