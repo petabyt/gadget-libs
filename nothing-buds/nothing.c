@@ -1,8 +1,9 @@
 // Implements Nothing CMF proprietary protocol
 #include <stdio.h>
 #include <stdlib.h>
-#include <bluetooth.h>
 #include <stdint.h>
+#include <runtime.h>
+#include <bluetooth.h>
 
 struct __attribute__((packed)) Request {
 	uint8_t magic;
@@ -80,3 +81,48 @@ int main(void) {
 
 	return 0;
 }
+
+static int init(struct Module *mod) {
+	pak_debug_log(mod, "cmf-nothing init");
+	pak_rt_set_screen_supported(mod, SCREEN_FILE_GALLERY, 1);
+	pak_rt_set_screen_supported(mod, SCREEN_FILE_VIEWER, 1);
+	pak_rt_set_tick_interval(mod, 1000 * 1000);
+	return 0;
+}
+
+static int on_find_connection(struct Module *mod, int job) {
+	struct PakBtAdapter adapter;
+	pak_bt_get_adapter(mod->bt, &adapter, 0);
+	struct PakBtDevice device;
+	pak_bt_get_saved_device(mod->bt, &adapter, &device, 1);
+
+	pak_debug_log(mod, "'%s'", device.name);
+
+	struct PakBtSocket *conn;
+	pak_bt_connect_to_service_channel(mod->bt, &device, "uuid", &conn);
+
+	pak_bt_unref_adapter(mod->bt, &adapter);
+	return -1;
+}
+
+static int on_idle_tick(struct Module *mod, unsigned int us_since_last_tick) {
+	return 0;
+}
+
+static int on_disconnect(struct Module *mod) {
+	return 0;
+}
+
+static int on_switch_screen(struct Module *mod, int old_screen, int new_screen, int job) {
+	return 0;
+}
+
+int get_module_cmfnothingaudio(struct Module *mod) {
+	mod->init = init;
+	mod->on_find_connection = on_find_connection;
+	mod->on_idle_tick = on_idle_tick;
+	mod->on_disconnect = on_disconnect;
+	mod->on_switch_screen = on_switch_screen;
+	return 0;
+}
+
