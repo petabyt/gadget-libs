@@ -1,4 +1,4 @@
-# Modules
+# gadget-libs
 
-Collection of modules that can be run using pak. These modules can communicate with gadgets by implement proprietary protocols, and are written
-in various languages.
+Collection of modules that can be run using [libpak runtime](https://github.com/petabyt/libpak/). These modules implement proprietary protocols that can communicate with gadgets such
+as cameras, earbuds, dashcams, etc.
