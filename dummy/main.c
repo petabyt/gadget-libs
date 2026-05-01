@@ -34,25 +34,7 @@ static int init(struct Module *mod) {
 	pak_rt_set_screen_supported(mod, SCREEN_FILE_VIEWER, 1);
 
 	pak_rt_set_storage_info(mod, "sdcard", 10, PAK_NEWEST_FIRST);
-
-	struct ExifParser metadata;
-	int rc = exif_start_raw(&metadata, _dummy_jpeg_jpg, sizeof(_dummy_jpeg_jpg), NULL, NULL);
-	if (rc == 0 && metadata.thumb_of != 0) {
-		pak_rt_add_file_thumbnail(mod, &(struct FileHandle){
-			.storage_name = "sdcard",
-			.index_in_view = 0,
-			.filename = NULL,
-		}, _dummy_jpeg_jpg + metadata.thumb_of, metadata.thumb_size);
-	}
-	pak_rt_add_file_metadata(mod, &(struct FileHandle){
-		.storage_name = "sdcard",
-		.index_in_view = 1,
-		.filename = NULL,
-	}, &(struct FileMetadata){
-		.filename = "ASD.JPG",
-		.mime_type = "image/jpeg",
-	});
-
+	pak_rt_set_tick_interval(mod, 1000 * 100);
 	return 0;
 }
 
@@ -61,7 +43,10 @@ static int on_try_connect_wifi(struct Module *mod, struct PakWiFiAdapter *handle
 }
 
 static int on_idle_tick(struct Module *mod, unsigned int us_since_last_tick) {
-	pak_rt_set_tick_interval(mod, 1000 * 1000);
+	char val[16];
+	sprintf(val, "%d", mod->priv->x);
+	pak_rt_set_session_property(mod, PAK_PROP_BATTERY_MAIN, val);
+	if (mod->priv->x++ > 100) mod->priv->x = 0;
 	return 0;
 }
 
@@ -73,23 +58,32 @@ static int on_switch_screen(struct Module *mod, int old_screen, int new_screen, 
 	pak_global_log("dummymod: Switching screen (%d -> %d)", old_screen, new_screen);
 	for (int i = 0; i < 100; i++) {
 		pak_rt_set_progress_bar(mod, job, i);
-		usleep(1000);
+		usleep(5000);
 	}
 	return 0;
 }
 
 static int on_request_file_contents(struct Module *mod, int job, struct FileHandle *file) {
-	pak_rt_add_file_contents(mod, file, _dummy_jpeg_jpg, sizeof(_dummy_jpeg_jpg));
+	pak_rt_add_file_contents(mod, file, _dummy_jpeg_jpg, sizeof(_dummy_jpeg_jpg), 0);
 	return 0;
 }
 
 static int on_request_thumbnail(struct Module *mod, int job, struct FileHandle *file) {
+	struct ExifParser metadata;
+	int rc = exif_start_raw(&metadata, _dummy_jpeg_jpg, sizeof(_dummy_jpeg_jpg), NULL, NULL);
+	if (rc == 0 && metadata.thumb_of != 0) {
+		pak_rt_add_file_thumbnail(mod, file, _dummy_jpeg_jpg + metadata.thumb_of, metadata.thumb_size);
+		return 0;
+	}
 	return -1;
 }
 
 static int on_request_file_metadata(struct Module *mod, int job, struct FileHandle *file) {
+	char name[32];
+	sprintf(name, "DSCF%04u.JPG", file->index_in_view * 13);
 	pak_rt_add_file_metadata(mod, file, &(struct FileMetadata){
-		.filename = "DSC1234.JPG",
+		.filename = name,
+		.file_size = 123,
 		.mime_type = "image/jpeg",
 	});
 	return 0;
@@ -105,6 +99,8 @@ static int on_custom_command(struct Module *mod, const char *request) {
 
 int get_module_dummy(struct Module *mod) {
 	mod->init = init;
+	mod->on_request_file_thumbnail = on_request_thumbnail;
+	mod->on_request_file_metadata = on_request_file_metadata;
 	mod->on_try_connect_wifi = on_try_connect_wifi;
 	mod->on_request_file_contents = on_request_file_contents;
 	mod->on_find_connection = on_find_connection;

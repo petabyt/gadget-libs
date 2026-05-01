@@ -5,6 +5,10 @@
 #include <runtime.h>
 #include <bluetooth.h>
 
+struct ModulePriv {
+	struct PakBtSocket *conn;
+};
+
 struct __attribute__((packed)) Request {
 	uint8_t magic;
 	uint16_t transaction_counter;
@@ -38,55 +42,78 @@ void hexdump(void *data, unsigned int length) {
 	printf("\n");
 }
 
-int main(void) {
-	struct PakBt *bt = pak_bt_get_context();
-	struct PakBtAdapter adapter;
-	pak_bt_get_adapter(bt, &adapter, 0);
+static int transaction(struct ModulePriv *priv, void *resp, unsigned int length, uint16_t cmd) {
+	struct PakBtSocket *conn = priv->conn;
+	char buffer[500];
+	struct Request *req = (struct Request *)buffer;
+	req->magic = 0x55;
+	req->transaction_counter = 0x5120 | 0x40;
+	req->command = cmd;
+	req->payload_length = 0;
+	req->message_counter = 0x0;
 
-	struct PakBtDevice device;
-	if (pak_bt_get_paired_device(bt, &adapter, &device, 0) != 0) {
-		printf("No paired device\n");
+	int rc = pak_bt_write(conn, req, sizeof(struct Request));
+	if (rc < 0) return -1;
+	rc = pak_bt_read(conn, resp, length);
+	if (rc < 0) return -1;
+	return 0;
+}
+
+static int update_battery(struct Module *mod) {
+	char buffer[500];
+	int rc = transaction(mod->priv, buffer, sizeof(buffer), 0xc007);
+	if (rc < 0) {
+		pak_debug_log(mod, "Transaction failed");
 		return -1;
-	}
-
-	const char *nothing_service_uuid = "aeac4a03-dff5-498f-843a-34487cf133eb";
-
-	struct PakBtSocket *conn;
-	int rc = pak_bt_connect_to_service_channel(bt, &device, nothing_service_uuid, &conn);
-	if (rc == 0) {
-		struct Request *req = malloc(100);
-		struct Response *resp = malloc(100);
-		req->magic = 0x55;
-		req->transaction_counter = 0x5120 | 0x40;	
-		req->command = 0xc007;
-		req->payload_length = 0;
-		req->message_counter = 0x0;
-
-		rc = pak_bt_write(conn, req, sizeof(struct Request));
-		printf("out %d\n", rc);
-		rc = pak_bt_read(conn, resp, 100);
-		printf("in %d\n", rc);
-
+	} else {
+		struct Response *resp = (struct Response *)buffer;
 		struct BatteryStat *stat = (struct BatteryStat *)resp->payload;
 		for (int i = 0; i < stat->n_bats; i++) {
-			printf("Battery: %d: %u%%\n", stat->batteries[i].id, stat->batteries[i].status & 0x7f);
+			char buf[16];
+			sprintf(buf, "%u", stat->batteries[i].status & 0x7f);
+			switch (stat->batteries[i].id) {
+			case 4:
+				pak_rt_set_session_property(mod, PAK_PROP_BATTERY_MAIN, buf);
+				break;
+			case 2:
+				pak_rt_set_session_property(mod, PAK_PROP_BATTERY_LEFT, buf);
+				break;
+			case 3:
+				pak_rt_set_session_property(mod, PAK_PROP_BATTERY_RIGHT, buf);
+				break;
+			}
+			//pak_debug_log(mod, "Battery: %d: %u%%\n", stat->batteries[i].id, stat->batteries[i].status & 0x7f);
 		}
-
-		free(resp); free(req);
 	}
-	pak_bt_close_socket(conn);
-
-	pak_bt_unref_adapter(bt, &adapter);
-	pak_bt_unref_device(bt, &device);
-
 	return 0;
 }
 
 static int init(struct Module *mod) {
 	pak_debug_log(mod, "cmf-nothing init");
-	pak_rt_set_screen_supported(mod, SCREEN_FILE_GALLERY, 1);
-	pak_rt_set_screen_supported(mod, SCREEN_FILE_VIEWER, 1);
 	pak_rt_set_tick_interval(mod, 1000 * 1000);
+	mod->priv = calloc(1, sizeof(struct ModulePriv));
+
+	pak_rt_add_user_setting(mod, &(struct PakUserSetting){
+		.name = "lowlagmode",
+		.title = "Low Lag Mode",
+		.type = PAK_BOOLEAN,
+		.u.boolv.v = 0,
+	});
+
+	pak_rt_add_user_setting(mod, &(struct PakUserSetting){
+		.name = "in-ear-detection",
+		.title = "In-ear detection",
+		.type = PAK_BOOLEAN,
+		.u.boolv.v = 0,
+	});
+
+	pak_rt_add_user_setting(mod, &(struct PakUserSetting){
+		.name = "ultrabass",
+		.title = "Ultra bass",
+		.type = PAK_BOOLEAN,
+		.u.boolv.v = 0,
+	});
+
 	return 0;
 }
 
@@ -94,15 +121,26 @@ static int on_find_connection(struct Module *mod, int job) {
 	struct PakBtAdapter adapter;
 	pak_bt_get_adapter(mod->bt, &adapter, 0);
 	struct PakBtDevice device;
-	pak_bt_get_saved_device(mod->bt, &adapter, &device, 1);
+	int rc = pak_bt_get_device(mod->bt, &adapter, &device, 0, PAK_FILTER_CONNECTED);
+	if (rc) return PAK_ERR_NO_CONNECTION;
 
-	pak_debug_log(mod, "'%s'", device.name);
+	pak_debug_log(mod, "Connecting to '%s'", device.name);
 
 	struct PakBtSocket *conn;
-	pak_bt_connect_to_service_channel(mod->bt, &device, "uuid", &conn);
+	rc = pak_bt_connect_to_service_channel(mod->bt, &device, "aeac4a03-dff5-498f-843a-34487cf133eb", &conn);
+	if (rc) {
+		pak_debug_log(mod, "pak_bt_connect_to_service_channel");
+		return -1;
+	}
+	mod->priv->conn = conn;
+
+	update_battery(mod);
+
+	pak_rt_set_session_property(mod, PAK_PROP_NAME, "CMF Buds Pro 2");
+	pak_rt_set_session_property(mod, PAK_PROP_FW_VER, "1.0.1.7.4");
 
 	pak_bt_unref_adapter(mod->bt, &adapter);
-	return -1;
+	return 0;
 }
 
 static int on_idle_tick(struct Module *mod, unsigned int us_since_last_tick) {
@@ -110,6 +148,7 @@ static int on_idle_tick(struct Module *mod, unsigned int us_since_last_tick) {
 }
 
 static int on_disconnect(struct Module *mod) {
+	pak_bt_close_socket(mod->priv->conn);
 	return 0;
 }
 
