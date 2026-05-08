@@ -3,7 +3,7 @@ OUT_DIR := ../app/src/main/assets
 install: install_libfuji install_veement
 
 compile_libfuji:
-	cmake -DCMAKE_TOOLCHAIN_FILE=../wasm.cmake -G Ninja -B libfuji/build libfuji
+	cmake -DCMAKE_TOOLCHAIN_FILE=wasm.cmake -G Ninja -B build
 	cmake --build libfuji/build
 install_libfuji:
 	cp libfuji.json $(OUT_DIR)/

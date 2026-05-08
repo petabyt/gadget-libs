@@ -109,3 +109,4 @@ int get_module_dummy(struct Module *mod) {
 	mod->on_switch_screen = on_switch_screen;
 	return 0;
 }
+__attribute__((weak)) int get_module(struct Module *mod) { return get_module_dummy(mod); }
