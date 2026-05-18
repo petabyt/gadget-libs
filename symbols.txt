@@ -91,7 +91,7 @@ pak_global_log
 pak_debug_log
 pak_rt_set_session_property
 pak_rt_set_screen_supported
-pak_rt_add_user_setting
+pak_rt_set_dashboard_pane
 pak_rt_set_storage_info
 pak_rt_set_tick_interval
 exif_start_raw

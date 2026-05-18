@@ -93,25 +93,25 @@ static int init(struct Module *mod) {
 	pak_rt_set_tick_interval(mod, 1000 * 1000);
 	mod->priv = calloc(1, sizeof(struct ModulePriv));
 
-	pak_rt_add_user_setting(mod, &(struct PakUserSetting){
-		.name = "lowlagmode",
-		.title = "Low Lag Mode",
-		.type = PAK_BOOLEAN,
-		.u.boolv.v = 0,
+	pak_rt_set_dashboard_pane(mod, &(struct PakUserSetting) {
+			.name = "lowlagmode",
+			.title = "Low Lag Mode",
+			.type = PAK_BOOLEAN,
+			.u.boolv.v = 0,
 	});
 
-	pak_rt_add_user_setting(mod, &(struct PakUserSetting){
-		.name = "in-ear-detection",
-		.title = "In-ear detection",
-		.type = PAK_BOOLEAN,
-		.u.boolv.v = 0,
+	pak_rt_set_dashboard_pane(mod, &(struct PakUserSetting) {
+			.name = "in-ear-detection",
+			.title = "In-ear detection",
+			.type = PAK_BOOLEAN,
+			.u.boolv.v = 0,
 	});
 
-	pak_rt_add_user_setting(mod, &(struct PakUserSetting){
-		.name = "ultrabass",
-		.title = "Ultra bass",
-		.type = PAK_BOOLEAN,
-		.u.boolv.v = 0,
+	pak_rt_set_dashboard_pane(mod, &(struct PakUserSetting) {
+			.name = "ultrabass",
+			.title = "Ultra bass",
+			.type = PAK_BOOLEAN,
+			.u.boolv.v = 0,
 	});
 
 	return 0;

@@ -13,6 +13,10 @@ struct ModulePriv {
 
 static int on_find_connection(struct Module *mod, int job) {
 	pak_debug_log(mod, "Connection established");
+	for (int i = 0; i < 10; i++) {
+		pak_rt_set_progress_bar(mod, job, i * 10);
+		usleep(100000);
+	}
 	return 0;
 }
 
@@ -22,11 +26,11 @@ static int init(struct Module *mod) {
 	pak_rt_set_session_property(mod, PAK_PROP_NAME, "Dummy Device");
 	pak_rt_set_session_property(mod, PAK_PROP_FW_VER, "v1.2.3");
 
-	pak_rt_add_user_setting(mod, &(struct PakUserSetting){
-		.name = "flipper",
-		.title = "Flipper",
-		.type = PAK_BOOLEAN,
-		.u.boolv.v = 1,
+	pak_rt_set_dashboard_pane(mod, &(struct PakUserSetting) {
+			.name = "flipper",
+			.title = "Flipper",
+			.type = PAK_BOOLEAN,
+			.u.boolv.v = 1,
 	});
 
 	pak_rt_set_screen_supported(mod, SCREEN_DASHBOARD, 1);
@@ -43,10 +47,8 @@ static int on_try_connect_wifi(struct Module *mod, struct PakWiFiAdapter *handle
 }
 
 static int on_idle_tick(struct Module *mod, unsigned int us_since_last_tick) {
-	char val[16];
-	sprintf(val, "%d", mod->priv->x);
-	pak_rt_set_session_property(mod, PAK_PROP_BATTERY_MAIN, val);
-	if (mod->priv->x++ > 100) mod->priv->x = 0;
+	pak_rt_set_session_property_int(mod, PAK_PROP_BATTERY_MAIN, mod->priv->x);
+	if ((mod->priv->x += 10) > 100) mod->priv->x = 0;
 	return 0;
 }
 
@@ -56,14 +58,22 @@ static int on_disconnect(struct Module *mod) {
 
 static int on_switch_screen(struct Module *mod, int old_screen, int new_screen, int job) {
 	pak_global_log("dummymod: Switching screen (%d -> %d)", old_screen, new_screen);
-	for (int i = 0; i < 100; i++) {
-		pak_rt_set_progress_bar(mod, job, i);
-		usleep(5000);
+	if (new_screen == SCREEN_FILE_VIEWER) {
+		for (int i = 0; i < 100; i++) {
+			if (pak_rt_is_job_cancelled(mod, job)) return 0;
+			pak_rt_set_progress_bar(mod, job, i);
+			usleep(10000);
+		}
 	}
 	return 0;
 }
 
 static int on_request_file_contents(struct Module *mod, int job, struct FileHandle *file) {
+	for (int i = 0; i < 100; i++) {
+		if (pak_rt_is_job_cancelled(mod, job)) return 0;
+		pak_rt_set_progress_bar(mod, job, i);
+		usleep(10000);
+	}
 	pak_rt_add_file_contents(mod, file, _dummy_jpeg_jpg, sizeof(_dummy_jpeg_jpg), 0);
 	return 0;
 }
