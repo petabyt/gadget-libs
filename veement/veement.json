@@ -1,13 +1,16 @@
 {
-  "name": "Veecar",
+  "name": "veecar",
   "description": "Supports Veement/Veecar dashcams",
   "author": "Daniel Cook",
   "version": 1,
   "isDraft": true,
+  "moduleType": "js",
+  "modulePath": "veement.js",
   "targets": [
     {
       "deviceType": "dashcam",
       "company": "Veement",
+      "summary": "Veement/Veecar dashcams",
       "products": ["V300", "V200", "S80", "VT10"]
     }
   ]

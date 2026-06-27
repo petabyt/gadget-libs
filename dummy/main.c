@@ -17,6 +17,13 @@ static int on_find_connection(struct Module *mod, int job) {
 		pak_rt_set_progress_bar(mod, job, i * 10);
 		usleep(100000);
 	}
+
+	pak_rt_save_session_signature(mod, &(struct PakSavedConnection){
+		.name = "DummyDevice",
+		.unique_id = "10:20:30:40",
+		.aux_data = NULL,
+	});
+
 	return 0;
 }
 
@@ -36,8 +43,9 @@ static int init(struct Module *mod) {
 	pak_rt_set_screen_supported(mod, SCREEN_DASHBOARD, 1);
 	pak_rt_set_screen_supported(mod, SCREEN_FILE_GALLERY, 1);
 	pak_rt_set_screen_supported(mod, SCREEN_FILE_VIEWER, 1);
+	pak_rt_set_screen_supported(mod, 107, 1);
 
-	pak_rt_set_storage_info(mod, "sdcard", 10, PAK_NEWEST_FIRST);
+	pak_rt_set_storage_info(mod, "sdcard", 50, PAK_NEWEST_FIRST);
 	pak_rt_set_tick_interval(mod, 1000 * 100);
 	return 0;
 }
@@ -103,7 +111,11 @@ static int on_run_test(struct Module *mod, int screen, int job) {
 	return 0;
 }
 
-static int on_custom_command(struct Module *mod, const char *request) {
+static int on_custom_command(struct Module *mod, int job, int argc, const char * const *argv) {
+	if (!strcmp(argv[0], "help")) {
+		//pak_rt_disconnect(mod, "Done");
+		pak_global_log("Foo fighters");
+	}
 	return 0;
 }
 
@@ -111,12 +123,13 @@ int get_module_dummy(struct Module *mod) {
 	mod->init = init;
 	mod->on_request_file_thumbnail = on_request_thumbnail;
 	mod->on_request_file_metadata = on_request_file_metadata;
-	mod->on_try_connect_wifi = on_try_connect_wifi;
+	//mod->on_try_connect_wifi = on_try_connect_wifi;
 	mod->on_request_file_contents = on_request_file_contents;
 	mod->on_find_connection = on_find_connection;
 	mod->on_idle_tick = on_idle_tick;
 	mod->on_disconnect = on_disconnect;
 	mod->on_switch_screen = on_switch_screen;
+	mod->on_custom_command = on_custom_command;
 	return 0;
 }
 __attribute__((weak)) int get_module(struct Module *mod) { return get_module_dummy(mod); }

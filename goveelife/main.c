@@ -116,7 +116,7 @@ static int send_command(struct Module *mod, struct GoveeCmd *cmd) {
 	unsigned int len = pak_bt_read_characteristic_cached_value(mod->bt, &chr, (uint8_t *)cmd, 20);
 	if (len != 20) pak_debug_log(mod, "Result is not 20");
 
-#if 1
+#if 0
 	char buf[200] = {0};
 	for (int i = 0; i < len; i++) {
 		sprintf(buf + strlen(buf), "%02x ", cmd->u.buf[i]);
@@ -128,7 +128,7 @@ static int send_command(struct Module *mod, struct GoveeCmd *cmd) {
 	return 0;
 }
 
-static int on_try_connect_bluetooth(struct Module *mod, struct PakBtDevice *device, int job) {
+static int on_try_connect_bluetooth(struct Module *mod, struct PakBtDevice *device, struct PakSavedConnection *saved, int job) {
 	mod->priv->device = *device;
 	if (pak_bt_device_connect(mod->bt, device)) {
 		pak_bt_unref_device(mod->bt, device);
@@ -156,7 +156,7 @@ static int on_try_connect_bluetooth(struct Module *mod, struct PakBtDevice *devi
 		}
 		pak_bt_read_characteristic(mod->bt, &chr, 1);
 		char buffer[20];
-		pak_bt_read_characteristic_cached_value(mod->bt, &chr, (uint8_t *)buffer, 20);
+		buffer[pak_bt_read_characteristic_cached_value(mod->bt, &chr, (uint8_t *)buffer, 20)] = '\0';
 		pak_rt_set_session_property(mod, PAK_PROP_NAME, buffer);
 		pak_bt_unref_gatt_characteristic(mod->bt, &chr);
 		pak_bt_unref_gatt_service(mod->bt, &service);
@@ -238,4 +238,4 @@ int get_module_goveelife(struct Module *mod) {
 	mod->on_disconnect = on_disconnect;
 	return 0;
 }
-
+__attribute__((weak)) int get_module(struct Module *mod) { return get_module_goveelife(mod); }

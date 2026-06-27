@@ -19,3 +19,6 @@ SET (CMAKE_NM      "/usr/bin/llvm-nm"                     CACHE INTERNAL "")
 SET (CMAKE_OBJDUMP "/usr/bin/llvm-dwarfdump"              CACHE INTERNAL "")
 SET (CMAKE_RANLIB  "/usr/bin/llvm-ranlib"                 CACHE INTERNAL "")
 SET (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS},--allow-undefined-file=${CMAKE_CURRENT_LIST_DIR}/symbols.txt" CACHE INTERNAL "")
+
+set(CMAKE_C_COMPILER_WORKS 1 CACHE INTERNAL "")
+set(CMAKE_CXX_COMPILER_WORKS 1 CACHE INTERNAL "")
