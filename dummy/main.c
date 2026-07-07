@@ -14,6 +14,7 @@ struct ModulePriv {
 static int on_find_connection(struct Module *mod, int job) {
 	pak_debug_log(mod, "Connection established");
 	for (int i = 0; i < 10; i++) {
+		if (pak_rt_is_job_cancelled(mod, job)) return PAK_ERR_CANCELLED;
 		pak_rt_set_progress_bar(mod, job, i * 10);
 		usleep(100000);
 	}
@@ -34,10 +35,9 @@ static int init(struct Module *mod) {
 	pak_rt_set_session_property(mod, PAK_PROP_FW_VER, "v1.2.3");
 
 	pak_rt_set_dashboard_pane(mod, &(struct PakUserSetting) {
-			.name = "flipper",
-			.title = "Flipper",
-			.type = PAK_BOOLEAN,
-			.u.boolv.v = 1,
+			.name = "switch-wifi",
+			.title = "Connect over WiFi",
+			.type = PAK_BUTTON,
 	});
 
 	pak_rt_set_screen_supported(mod, SCREEN_DASHBOARD, 1);
@@ -119,6 +119,11 @@ static int on_custom_command(struct Module *mod, int job, int argc, const char *
 	return 0;
 }
 
+static int on_prop_changed(struct Module *mod, int job, struct PakUserSetting *prop) {
+	pak_global_log("on_prop_changed %s", prop->name);
+	return 0;
+}
+
 int get_module_dummy(struct Module *mod) {
 	mod->init = init;
 	mod->on_request_file_thumbnail = on_request_thumbnail;
@@ -130,6 +135,7 @@ int get_module_dummy(struct Module *mod) {
 	mod->on_disconnect = on_disconnect;
 	mod->on_switch_screen = on_switch_screen;
 	mod->on_custom_command = on_custom_command;
+	mod->on_setting_changed = on_prop_changed;
 	return 0;
 }
 __attribute__((weak)) int get_module(struct Module *mod) { return get_module_dummy(mod); }

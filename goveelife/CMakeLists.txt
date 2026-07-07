@@ -4,8 +4,8 @@ project(goveelife)
 if(MAKE_EXECUTABLE)
     add_executable(goveelife main.c)
 else()
-    add_library(goveelife STATIC
+    add_library(goveelife SHARED
         main.c
     )
 endif()
-target_link_libraries(goveelife PRIVATE pak)
+target_link_libraries(goveelife PRIVATE pakrt)

@@ -27,8 +27,8 @@ service: 02f00000-0000-0000-0000-00000000fe00
 */
 
 struct ModulePriv {
-	struct PakBtDevice device;
-	struct PakGattService govee_service;
+	struct PakBtDevice *device;
+	struct PakGattService *govee_service;
 };
 
 #define GOVEE_SERVICE "494e5445-4c4c-495f-524f-434b535f4857"
@@ -93,9 +93,9 @@ static int send_command(struct Module *mod, struct GoveeCmd *cmd) {
 		default: uuid = GOVEE_COMMAND; break;
 	}
 
-	struct PakGattCharacteristic chr;
-	if (pak_bt_get_gatt_characteristic_uuid(mod->bt, &mod->priv->govee_service, &chr, uuid)) {
-		pak_bt_unref_gatt_service(mod->bt, &mod->priv->govee_service);
+	struct PakGattCharacteristic *chr = pak_bt_get_gatt_characteristic_uuid(mod->bt, mod->priv->govee_service, uuid);
+	if (chr == NULL) {
+		pak_bt_unref_gatt_service(mod->bt, mod->priv->govee_service);
 		return PAK_ERR_UNSUPPORTED;
 	}
 
@@ -106,14 +106,14 @@ static int send_command(struct Module *mod, struct GoveeCmd *cmd) {
 		cmd->u.buf[19] ^= cmd->u.buf[i];
 	}
 
-	pak_bt_set_watching_characteristic(mod->bt, &chr, 1);
-	if (pak_bt_write_characteristic(mod->bt, &chr, (uint8_t *)cmd, 20, 1)) {
+	pak_bt_set_watching_characteristic(mod->bt, chr, 1);
+	if (pak_bt_write_characteristic(mod->bt, chr, (uint8_t *)cmd, 20, 1)) {
 		return PAK_ERR_IO;
 	}
-	pak_bt_watch_characteristic(mod->bt, &chr, 100);
-	pak_bt_set_watching_characteristic(mod->bt, &chr, 0);
+	pak_bt_watch_characteristic(mod->bt, chr, 100);
+	pak_bt_set_watching_characteristic(mod->bt, chr, 0);
 
-	unsigned int len = pak_bt_read_characteristic_cached_value(mod->bt, &chr, (uint8_t *)cmd, 20);
+	unsigned int len = pak_bt_read_characteristic_cached_value(mod->bt, chr, (uint8_t *)cmd, 20);
 	if (len != 20) pak_debug_log(mod, "Result is not 20");
 
 #if 0
@@ -124,18 +124,19 @@ static int send_command(struct Module *mod, struct GoveeCmd *cmd) {
 	pak_global_log("read: %s", buf);
 #endif
 
-	pak_bt_unref_gatt_characteristic(mod->bt, &chr);
+	pak_bt_unref_gatt_characteristic(mod->bt, chr);
 	return 0;
 }
 
 static int on_try_connect_bluetooth(struct Module *mod, struct PakBtDevice *device, struct PakSavedConnection *saved, int job) {
-	mod->priv->device = *device;
+	mod->priv->device = device;
 	if (pak_bt_device_connect(mod->bt, device)) {
 		pak_bt_unref_device(mod->bt, device);
 		return PAK_ERR_NO_CONNECTION;
 	}
 
-	if (pak_bt_get_gatt_service_uuid(mod->bt, &mod->priv->device, &mod->priv->govee_service, GOVEE_SERVICE)) {
+	mod->priv->govee_service = pak_bt_get_gatt_service_uuid(mod->bt, mod->priv->device, GOVEE_SERVICE);
+	if (mod->priv->govee_service == NULL) {
 		return PAK_ERR_UNSUPPORTED;
 	}
 
@@ -145,31 +146,31 @@ static int on_try_connect_bluetooth(struct Module *mod, struct PakBtDevice *devi
 	pak_rt_set_session_property(mod, PAK_PROP_FW_VER, cmd.u.fwver.value);
 
 	{
-		struct PakGattService service;
-		if (pak_bt_get_gatt_service_uuid(mod->bt, &mod->priv->device, &service, GENERIC_ACCESS_SERVICE)) {
+		struct PakGattService *service = pak_bt_get_gatt_service_uuid(mod->bt, mod->priv->device, GENERIC_ACCESS_SERVICE);
+		if (service == NULL) {
 			return PAK_ERR_UNSUPPORTED;
 		}
-		struct PakGattCharacteristic chr;
-		if (pak_bt_get_gatt_characteristic_uuid(mod->bt, &service, &chr, DEVICE_NAME)) {
-			pak_bt_unref_gatt_service(mod->bt, &service);
+		struct PakGattCharacteristic *chr = pak_bt_get_gatt_characteristic_uuid(mod->bt, service, DEVICE_NAME);
+		if (chr == NULL) {
+			pak_bt_unref_gatt_service(mod->bt, service);
 			return PAK_ERR_UNSUPPORTED;
 		}
-		pak_bt_read_characteristic(mod->bt, &chr, 1);
+		pak_bt_read_characteristic(mod->bt, chr, 1);
 		char buffer[20];
-		buffer[pak_bt_read_characteristic_cached_value(mod->bt, &chr, (uint8_t *)buffer, 20)] = '\0';
+		buffer[pak_bt_read_characteristic_cached_value(mod->bt, chr, (uint8_t *)buffer, 20)] = '\0';
 		pak_rt_set_session_property(mod, PAK_PROP_NAME, buffer);
-		pak_bt_unref_gatt_characteristic(mod->bt, &chr);
-		pak_bt_unref_gatt_service(mod->bt, &service);
+		pak_bt_unref_gatt_characteristic(mod->bt, chr);
+		pak_bt_unref_gatt_service(mod->bt, service);
 	}
 
 	{
-		struct PakGattCharacteristic chr;
-		if (pak_bt_get_gatt_characteristic_uuid(mod->bt, &mod->priv->govee_service, &chr, GOVEE_DATA_RESULT)) {
-			pak_bt_unref_gatt_service(mod->bt, &mod->priv->govee_service);
+		struct PakGattCharacteristic *chr = pak_bt_get_gatt_characteristic_uuid(mod->bt, mod->priv->govee_service, GOVEE_DATA_RESULT);
+		if (chr == NULL) {
+			pak_bt_unref_gatt_service(mod->bt, mod->priv->govee_service);
 			return PAK_ERR_UNSUPPORTED;
 		}
 
-		pak_bt_set_watching_characteristic(mod->bt, &chr, 1);
+		pak_bt_set_watching_characteristic(mod->bt, chr, 1);
 
 		send_command(mod, &(struct GoveeCmd){
 			.u.historicalreq = {CMD_REQUEST_HISTORICAL_DATA, bswap_16(60), bswap_16(0)}
@@ -178,8 +179,8 @@ static int on_try_connect_bluetooth(struct Module *mod, struct PakBtDevice *devi
 		int humitity[100];
 		int temp[100];
 		int i;
-		for (i = 0; pak_bt_watch_characteristic(mod->bt, &chr, 1000) == 0; i++) {
-			unsigned int len = pak_bt_read_characteristic_cached_value(mod->bt, &chr, (uint8_t *)&cmd, 20);
+		for (i = 0; pak_bt_watch_characteristic(mod->bt, chr, 1000) == 0; i++) {
+			unsigned int len = pak_bt_read_characteristic_cached_value(mod->bt, chr, (uint8_t *)&cmd, 20);
 			if (i < 100 && len == 20) {
 				decode_measurement(cmd.u.historicaldata.records[0], &humitity[i], &temp[i]);
 			} else break;
@@ -204,15 +205,15 @@ static int on_try_connect_bluetooth(struct Module *mod, struct PakBtDevice *devi
 			}
 		});
 
-		pak_bt_set_watching_characteristic(mod->bt, &chr, 0);
+		pak_bt_set_watching_characteristic(mod->bt, chr, 0);
 	}
 
 	return 0;
 }
 
 static int on_idle_tick(struct Module *mod, unsigned int us_since_last_tick) {
-	pak_bt_device_update(mod->bt, &mod->priv->device);
-	if (!mod->priv->device.is_connected) return -1;
+	pak_bt_device_update(mod->bt, mod->priv->device);
+	if (!mod->priv->device->is_connected) return -1;
 
 	struct GoveeCmd cmd = {0};
 	cmd.u.cmd = CMD_REQUEST_MEASUREMENT;
@@ -225,9 +226,9 @@ static int on_idle_tick(struct Module *mod, unsigned int us_since_last_tick) {
 }
 
 static int on_disconnect(struct Module *mod) {
-	pak_bt_device_disconnect(mod->bt, &mod->priv->device);
-	pak_bt_unref_device(mod->bt, &mod->priv->device);
-	pak_bt_unref_gatt_service(mod->bt, &mod->priv->govee_service);
+	pak_bt_device_disconnect(mod->bt, mod->priv->device);
+	pak_bt_unref_device(mod->bt, mod->priv->device);
+	pak_bt_unref_gatt_service(mod->bt, mod->priv->govee_service);
 	return 0;
 }
 

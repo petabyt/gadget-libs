@@ -118,17 +118,15 @@ static int init(struct Module *mod) {
 }
 
 static int on_find_connection(struct Module *mod, int job) {
-	struct PakBtAdapter adapter;
-	pak_bt_get_adapter(mod->bt, &adapter, 0);
-	struct PakBtDevice device;
-	int rc = pak_bt_get_device(mod->bt, &adapter, &device, 0, PAK_FILTER_CONNECTED);
-	if (rc) return PAK_ERR_NO_CONNECTION;
+	struct PakBtAdapter *adapter = pak_bt_get_adapter(mod->bt, 0);
+	if (adapter == NULL) return PAK_ERR_NO_CONNECTION;
+	struct PakBtDevice *device = pak_bt_get_device(mod->bt, adapter, 0, PAK_FILTER_CONNECTED);
+	if (device == NULL) return PAK_ERR_NO_CONNECTION;
 
-	pak_debug_log(mod, "Connecting to '%s'", device.name);
+	pak_debug_log(mod, "Connecting to '%s'", device->name);
 
-	struct PakBtSocket *conn;
-	rc = pak_bt_connect_to_service_channel(mod->bt, &device, "aeac4a03-dff5-498f-843a-34487cf133eb", &conn);
-	if (rc) {
+	struct PakBtSocket *conn = pak_bt_connect_to_service_channel(mod->bt, device, "aeac4a03-dff5-498f-843a-34487cf133eb");
+	if (conn == NULL) {
 		pak_debug_log(mod, "pak_bt_connect_to_service_channel");
 		return -1;
 	}
@@ -139,7 +137,7 @@ static int on_find_connection(struct Module *mod, int job) {
 	pak_rt_set_session_property(mod, PAK_PROP_NAME, "CMF Buds Pro 2");
 	pak_rt_set_session_property(mod, PAK_PROP_FW_VER, "1.0.1.7.4");
 
-	pak_bt_unref_adapter(mod->bt, &adapter);
+	pak_bt_unref_adapter(mod->bt, adapter);
 	return 0;
 }
 

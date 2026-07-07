@@ -4,8 +4,8 @@ project(dummy)
 if(MAKE_EXECUTABLE)
     add_executable(dummy main.c)
 else()
-    add_library(dummy STATIC
+    add_library(dummy SHARED
         main.c
     )
 endif()
-target_link_libraries(dummy PRIVATE pak)
+target_link_libraries(dummy PRIVATE pakrt)
