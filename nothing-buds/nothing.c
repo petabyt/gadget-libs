@@ -59,7 +59,7 @@ static int transaction(struct ModulePriv *priv, void *resp, unsigned int length,
 	return 0;
 }
 
-static int update_battery(struct Module *mod) {
+static int update_battery(struct PakModule *mod) {
 	char buffer[500];
 	int rc = transaction(mod->priv, buffer, sizeof(buffer), 0xc007);
 	if (rc < 0) {
@@ -88,26 +88,26 @@ static int update_battery(struct Module *mod) {
 	return 0;
 }
 
-static int init(struct Module *mod) {
+static int init(struct PakModule *mod) {
 	pak_debug_log(mod, "cmf-nothing init");
 	pak_rt_set_tick_interval(mod, 1000 * 1000);
 	mod->priv = calloc(1, sizeof(struct ModulePriv));
 
-	pak_rt_set_dashboard_pane(mod, &(struct PakUserSetting) {
+	pak_rt_set_dashboard_pane(mod, &(struct PakWidget) {
 			.name = "lowlagmode",
 			.title = "Low Lag Mode",
 			.type = PAK_BOOLEAN,
 			.u.boolv.v = 0,
 	});
 
-	pak_rt_set_dashboard_pane(mod, &(struct PakUserSetting) {
+	pak_rt_set_dashboard_pane(mod, &(struct PakWidget) {
 			.name = "in-ear-detection",
 			.title = "In-ear detection",
 			.type = PAK_BOOLEAN,
 			.u.boolv.v = 0,
 	});
 
-	pak_rt_set_dashboard_pane(mod, &(struct PakUserSetting) {
+	pak_rt_set_dashboard_pane(mod, &(struct PakWidget) {
 			.name = "ultrabass",
 			.title = "Ultra bass",
 			.type = PAK_BOOLEAN,
@@ -117,7 +117,7 @@ static int init(struct Module *mod) {
 	return 0;
 }
 
-static int on_find_connection(struct Module *mod, int job) {
+static int on_find_connection(struct PakModule *mod, int job) {
 	struct PakBtAdapter *adapter = pak_bt_get_adapter(mod->bt, 0);
 	if (adapter == NULL) return PAK_ERR_NO_CONNECTION;
 	struct PakBtDevice *device = pak_bt_get_device(mod->bt, adapter, 0, PAK_FILTER_CONNECTED);
@@ -141,20 +141,20 @@ static int on_find_connection(struct Module *mod, int job) {
 	return 0;
 }
 
-static int on_idle_tick(struct Module *mod, unsigned int us_since_last_tick) {
+static int on_idle_tick(struct PakModule *mod, unsigned int us_since_last_tick) {
 	return 0;
 }
 
-static int on_disconnect(struct Module *mod) {
+static int on_disconnect(struct PakModule *mod) {
 	pak_bt_close_socket(mod->priv->conn);
 	return 0;
 }
 
-static int on_switch_screen(struct Module *mod, int old_screen, int new_screen, int job) {
+static int on_switch_screen(struct PakModule *mod, int old_screen, int new_screen, int job) {
 	return 0;
 }
 
-int get_module_cmfnothingaudio(struct Module *mod) {
+int get_module_cmfnothingaudio(struct PakModule *mod) {
 	mod->init = init;
 	mod->on_find_connection = on_find_connection;
 	mod->on_idle_tick = on_idle_tick;
@@ -162,4 +162,4 @@ int get_module_cmfnothingaudio(struct Module *mod) {
 	mod->on_switch_screen = on_switch_screen;
 	return 0;
 }
-__attribute__((weak)) int get_module(struct Module *mod) { return get_module_cmfnothingaudio(mod); }
+__attribute__((weak)) int get_module(struct PakModule *mod) { return get_module_cmfnothingaudio(mod); }

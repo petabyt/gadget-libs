@@ -78,13 +78,13 @@ static void decode_measurement(const uint8_t record[3], int *humid, int *temp) {
 	(*humid) = v % 1000;
 }
 
-static int init(struct Module *mod) {
+static int init(struct PakModule *mod) {
 	pak_rt_set_tick_interval(mod, 3000 * 1000);
 	mod->priv = calloc(1, sizeof(struct ModulePriv));
 	return 0;
 }
 
-static int send_command(struct Module *mod, struct GoveeCmd *cmd) {
+static int send_command(struct PakModule *mod, struct GoveeCmd *cmd) {
 	const char *uuid = NULL;
 	switch (cmd->u.cmd) {
 		case CMD_REQUEST_HISTORICAL_DATA:
@@ -128,7 +128,7 @@ static int send_command(struct Module *mod, struct GoveeCmd *cmd) {
 	return 0;
 }
 
-static int on_try_connect_bluetooth(struct Module *mod, struct PakBtDevice *device, struct PakSavedConnection *saved, int job) {
+static int on_try_connect_bluetooth(struct PakModule *mod, struct PakBtDevice *device, struct PakSavedConnection *saved, int job) {
 	mod->priv->device = device;
 	if (pak_bt_device_connect(mod->bt, device)) {
 		pak_bt_unref_device(mod->bt, device);
@@ -186,7 +186,7 @@ static int on_try_connect_bluetooth(struct Module *mod, struct PakBtDevice *devi
 			} else break;
 		}
 
-		pak_rt_set_dashboard_pane(mod, &(struct PakUserSetting) {
+		pak_rt_set_dashboard_pane(mod, &(struct PakWidget) {
 			.name = "temp",
 			.title = "Temperature",
 			.type = PAK_GRAPH,
@@ -195,7 +195,7 @@ static int on_try_connect_bluetooth(struct Module *mod, struct PakBtDevice *devi
 				.n_points = i,
 			}
 		});
-		pak_rt_set_dashboard_pane(mod, &(struct PakUserSetting) {
+		pak_rt_set_dashboard_pane(mod, &(struct PakWidget) {
 			.name = "humid",
 			.title = "Humidity",
 			.type = PAK_GRAPH,
@@ -211,7 +211,7 @@ static int on_try_connect_bluetooth(struct Module *mod, struct PakBtDevice *devi
 	return 0;
 }
 
-static int on_idle_tick(struct Module *mod, unsigned int us_since_last_tick) {
+static int on_idle_tick(struct PakModule *mod, unsigned int us_since_last_tick) {
 	pak_bt_device_update(mod->bt, mod->priv->device);
 	if (!mod->priv->device->is_connected) return -1;
 
@@ -225,18 +225,18 @@ static int on_idle_tick(struct Module *mod, unsigned int us_since_last_tick) {
 	return 0;
 }
 
-static int on_disconnect(struct Module *mod) {
+static int on_disconnect(struct PakModule *mod) {
 	pak_bt_device_disconnect(mod->bt, mod->priv->device);
 	pak_bt_unref_device(mod->bt, mod->priv->device);
 	pak_bt_unref_gatt_service(mod->bt, mod->priv->govee_service);
 	return 0;
 }
 
-int get_module_goveelife(struct Module *mod) {
+int get_module_goveelife(struct PakModule *mod) {
 	mod->init = init;
 	mod->on_try_connect_bluetooth = on_try_connect_bluetooth;
 	mod->on_idle_tick = on_idle_tick;
 	mod->on_disconnect = on_disconnect;
 	return 0;
 }
-__attribute__((weak)) int get_module(struct Module *mod) { return get_module_goveelife(mod); }
+__attribute__((weak)) int get_module(struct PakModule *mod) { return get_module_goveelife(mod); }
