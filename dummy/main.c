@@ -4,8 +4,10 @@
 #include <runtime.h>
 #include <runtime_ext.h>
 #include <wifi.h>
-
 #include "dummyjpg.h"
+
+//#define SLOW_SCREENS
+//#define SLOW_CONNECTION
 
 struct ModulePriv {
 	int x;
@@ -13,11 +15,13 @@ struct ModulePriv {
 
 static int on_find_connection(struct PakModule *mod, int job) {
 	pak_debug_log(mod, "Connection established");
+#ifdef SLOW_CONNECTION
 	for (int i = 0; i < 10; i++) {
 		if (pak_rt_is_job_cancelled(mod, job)) return PAK_ERR_CANCELLED;
 		pak_rt_set_progress_bar(mod, job, i * 10);
 		usleep(100000);
 	}
+#endif
 
 	pak_rt_save_session_signature(mod, &(struct PakSavedConnection){
 		.name = "DummyDevice",
@@ -30,14 +34,31 @@ static int on_find_connection(struct PakModule *mod, int job) {
 
 static int init(struct PakModule *mod) {
 	pak_debug_log(mod, "Hello from dummy module");
-	mod->priv = (struct ModulePriv *)malloc(sizeof(struct ModulePriv));
+	mod->priv = (struct ModulePriv *)calloc(sizeof(struct ModulePriv), 1);
 	pak_rt_set_session_property(mod, PAK_PROP_NAME, "Dummy Device");
 	pak_rt_set_session_property(mod, PAK_PROP_FW_VER, "v1.2.3");
 
 	pak_rt_set_dashboard_pane(mod, &(struct PakWidget) {
-			.name = "switch-wifi",
-			.title = "Connect over WiFi",
-			.type = PAK_BUTTON,
+		.name = "button",
+		.title = "A Button",
+		.type = PAK_BUTTON,
+	});
+
+	pak_rt_set_dashboard_pane(mod, &(struct PakWidget) {
+		.name = "bool",
+		.title = "A Switch",
+		.type = PAK_BOOLEAN,
+		.u.boolv.v = 1,
+	});
+
+	pak_rt_set_dashboard_pane(mod, &(struct PakWidget) {
+		.name = "dropdown",
+		.title = "Option",
+		.type = PAK_DROPDOWN,
+		.u.dropdownv = {
+			.index_value = 1,
+			.list = (const char *[]){"4.0l I6", "5.6l v8", "7.4l v8", "2.8l tdi", NULL}
+		}
 	});
 
 	pak_rt_set_screen_supported(mod, PAK_SCREEN_DASHBOARD, 1);
@@ -66,6 +87,7 @@ static int on_disconnect(struct PakModule *mod) {
 
 static int on_switch_screen(struct PakModule *mod, int old_screen, int new_screen, int job) {
 	pak_global_log("dummymod: Switching screen (%d -> %d)", old_screen, new_screen);
+#ifdef SLOW_SCREENS
 	if (new_screen == PAK_SCREEN_FILE_VIEWER) {
 		for (int i = 0; i < 100; i++) {
 			if (pak_rt_is_job_cancelled(mod, job)) return 0;
@@ -73,20 +95,27 @@ static int on_switch_screen(struct PakModule *mod, int old_screen, int new_scree
 			usleep(10000);
 		}
 	}
+#endif
 	return 0;
 }
 
 static int on_request_file_contents(struct PakModule *mod, int job, struct PakFileHandle *file) {
+#define min(a, b)  ((a) < (b) ? (a) : (b))
+	unsigned int of = 0;
 	for (int i = 0; i < 100; i++) {
 		if (pak_rt_is_job_cancelled(mod, job)) return 0;
+		unsigned int len = min(sizeof(_dummy_jpeg_jpg) / 100, sizeof(_dummy_jpeg_jpg) - of);
+		pak_rt_add_file_contents(mod, file, _dummy_jpeg_jpg + of, len, of, sizeof(_dummy_jpeg_jpg));
+		of += len;
 		pak_rt_set_progress_bar(mod, job, i);
 		usleep(10000);
 	}
-	pak_rt_add_file_contents(mod, file, _dummy_jpeg_jpg, sizeof(_dummy_jpeg_jpg), 0);
+	pak_rt_add_file_contents(mod, file, _dummy_jpeg_jpg + of, sizeof(_dummy_jpeg_jpg) - of, of, sizeof(_dummy_jpeg_jpg));
 	return 0;
 }
 
 static int on_request_thumbnail(struct PakModule *mod, int job, struct PakFileHandle *file) {
+	usleep(100000);
 	struct ExifParser metadata;
 	int rc = exif_start_raw(&metadata, _dummy_jpeg_jpg, sizeof(_dummy_jpeg_jpg), NULL, NULL);
 	if (rc == 0 && metadata.thumb_of != 0) {
@@ -97,6 +126,7 @@ static int on_request_thumbnail(struct PakModule *mod, int job, struct PakFileHa
 }
 
 static int on_request_file_metadata(struct PakModule *mod, int job, struct PakFileHandle *file) {
+	usleep(100000);
 	char name[32];
 	sprintf(name, "DSCF%04u.JPG", file->index_in_view * 13);
 	pak_rt_add_file_metadata(mod, file, &(struct PakFileMetadata){
