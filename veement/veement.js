@@ -3,18 +3,16 @@ import { Module } from "pak:runtime";
 import { HttpSocket } from "pak:http";
 
 class Veement extends Module {
-	userAgent = "PakUserAgent";
 	socket = null;
 	loopFiles = [];
 	constructor() {
 		super()
 	}
 	onTryConnectWiFi(wifiAdapter, saved, job) {
-		let wifi = this.wifi;
 		this.socket = new HttpSocket("192.168.169.1");
 
-		this.socket.connect(function(fd) {
-			wifi.bindSocketToAdapter(wifiAdapter, fd);
+		this.socket.connect((fd) => {
+			this.wifi.bindSocketToAdapter(wifiAdapter, fd);
 		});
 
 		this.addWidget({
@@ -49,7 +47,7 @@ class Veement extends Module {
 				this.setProperty(Module.PAK_PROP_FW_VER, resp.info.softver);
 
 				resp = this.httpRequest("/app/getfilelist?folder=loop&start=0&end=99");
-				if (resp.result == 0) {
+				if (resp.result == 0 && resp.info.length > 0) {
 					this.setScreenSupported(Module.PAK_SCREEN_FILE_GALLERY, true);
 					this.setScreenSupported(Module.PAK_SCREEN_FILE_VIEWER, true);
 
@@ -64,6 +62,8 @@ class Veement extends Module {
 							"mimeType": "image/quicktime"
 						});
 					}
+				} else {
+					this.setStorageInfo("sdcard", 0, Module.PAK_NEWEST_FIRST);
 				}
 			} catch (e) {
 				this.fatalError(e);
@@ -92,7 +92,12 @@ class Veement extends Module {
 	}
 	httpRequest(path) {
 		let r = this.socket.request(path);
-		return JSON.parse(r[1]);
+		try {
+			return JSON.parse(r[1]);
+		} catch (e) {
+			this.debugLog(r[1]);
+			throw e;
+		}
 	}
 };
 Module.export(new Veement());
