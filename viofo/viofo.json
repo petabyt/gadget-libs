@@ -1,0 +1,43 @@
+{
+  "name": "viofo",
+  "description": "Supports Viofo dashcams",
+  "author": "Daniel Cook",
+  "version": 1,
+  "isDraft": true,
+  "moduleType": "js",
+  "modulePath": "viofo.js",
+  "targets": [
+    {
+      "deviceType": "dashcam",
+      "company": "Viofo",
+      "summary": "Viofo dashcams",
+      "products": [
+        "A119 V3",
+        "A119 Mini 2",
+        "A119M Pro",
+        "A129 Plus Duo",
+        "A129 Pro Duo",
+        "A139 2CH",
+        "A139 3CH",
+        "A139 Pro",
+        "A229 Duo",
+        "A229 Plus",
+        "A229 Pro",
+        "A229 Ultra",
+        "A329S",
+        "A329T",
+        "A329TC",
+        "A329TW",
+        "T130 2CH",
+        "T130 3CH",
+        "WM1",
+        "VS1",
+        "MT1"
+      ],
+      "wifiFilter": {
+        "ssidPattern": "VIOFO-.*",
+        "defaultPassword": "12345678"
+      }
+    }
+  ]
+}
