@@ -10,7 +10,6 @@ class Veement extends Module {
 	}
 	onTryConnectWiFi(wifiAdapter, saved, job) {
 		this.socket = new HttpSocket("192.168.169.1");
-
 		this.socket.connect((fd) => {
 			this.wifi.bindSocketToAdapter(wifiAdapter, fd);
 		});
@@ -26,53 +25,50 @@ class Veement extends Module {
 			"type": "bool",
 			"value": true,
 		});
-	}
-	onSwitchScreen(prev, to, job) {
-		if (to == Module.PAK_SCREEN_DASHBOARD) {
-			try {
-				let d = new Date();
-				let timestamp =
-					d.getFullYear() +
-					String(d.getMonth() + 1).padStart(2, "0") +
-					String(d.getDate()).padStart(2, "0") +
-					String(d.getHours()).padStart(2, "0") +
-					String(d.getMinutes()).padStart(2, "0") +
-					String(d.getSeconds()).padStart(2, "0");
-				this.httpRequest("/app/settimezone?timezone=" + String(-5));
-				this.httpRequest("/app/setsystime?date=" + String(timestamp));
 
-				let resp = this.httpRequest("/app/getproductinfo");
-				this.setProperty(Module.PAK_PROP_NAME, `${resp.info.company} ${resp.info.model}`);
-				resp = this.httpRequest("/app/getdeviceattr");
-				this.setProperty(Module.PAK_PROP_FW_VER, resp.info.softver);
+		try {
+			let d = new Date();
+			let timestamp =
+				d.getFullYear() +
+				String(d.getMonth() + 1).padStart(2, "0") +
+				String(d.getDate()).padStart(2, "0") +
+				String(d.getHours()).padStart(2, "0") +
+				String(d.getMinutes()).padStart(2, "0") +
+				String(d.getSeconds()).padStart(2, "0");
+			this.httpRequest("/app/settimezone?timezone=" + String(-5));
+			this.httpRequest("/app/setsystime?date=" + String(timestamp));
 
-				resp = this.httpRequest("/app/getfilelist?folder=loop&start=0&end=99");
-				if (resp.result == 0 && resp.info.length > 0) {
-					this.setScreenSupported(Module.PAK_SCREEN_FILE_GALLERY, true);
-					this.setScreenSupported(Module.PAK_SCREEN_FILE_VIEWER, true);
+			let resp = this.httpRequest("/app/getproductinfo");
+			this.setProperty(Module.PAK_PROP_NAME, `${resp.info.company} ${resp.info.model}`);
+			resp = this.httpRequest("/app/getdeviceattr");
+			this.setProperty(Module.PAK_PROP_FW_VER, resp.info.softver);
 
-					this.loopFiles = resp.info[0].files
-					this.setStorageInfo("sdcard", resp.info[0].count, Module.PAK_NEWEST_FIRST);
-					for (let i = 0; i < this.loopFiles.length; i++) {
-						this.addFileMetadata({
-							"storageName": "sdcard",
-							"index": i
-						}, {
-							"filename": this.loopFiles[i].name.substring(22, 30),
-							"mimeType": "image/quicktime"
-						});
-					}
-				} else {
-					this.setStorageInfo("sdcard", 0, Module.PAK_NEWEST_FIRST);
+			resp = this.httpRequest("/app/getfilelist?folder=loop&start=0&end=99");
+			if (resp.result == 0 && resp.info.length > 0) {
+				this.setScreenSupported(Module.PAK_SCREEN_FILE_GALLERY, true);
+				this.setScreenSupported(Module.PAK_SCREEN_FILE_VIEWER, true);
+
+				this.loopFiles = resp.info[0].files
+				this.setStorageInfo("sdcard", resp.info[0].count, Module.PAK_NEWEST_FIRST);
+				for (let i = 0; i < this.loopFiles.length; i++) {
+					this.addFileMetadata({
+						"storageName": "sdcard",
+						"index": i,
+					}, {
+						"filename": this.loopFiles[i].name.substring(22, 30),
+						"mimeType": "video/quicktime"
+					});
 				}
-			} catch (e) {
-				this.fatalError(e);
-				throw e;
+			} else {
+				this.setStorageInfo("sdcard", 0, Module.PAK_NEWEST_FIRST);
 			}
+		} catch (e) {
+			this.fatalError(e);
+			throw e;
 		}
 	}
+	onSwitchScreen(prev, to, job) {}
 	onRequestFileThumbnail(job, handle) {
-		Module.globalLog("onRequestFileThumbnail");
 		let metadata = this.loopFiles[handle.index];
 		let thumbBuf = new Uint8Array();
 		let r = this.socket.requestChunks("/app/getthumbnail?file=" + metadata.name, 50000, (buf) => {
@@ -83,6 +79,17 @@ class Veement extends Module {
 		});
 		this.addFileThumbnail(handle, thumbBuf.buffer);
 	}
+	onRequestFileContents(job, handle) {
+		let metadata = this.loopFiles[handle.index];
+		let offset = 0;
+		let r = this.socket.requestChunks(metadata.name, 50000, (buf, totalSize) => {
+			let temp = new Uint8Array(buf.length);
+			temp.set(buf, 0);
+			this.addFileContents(handle, temp.buffer, offset, totalSize);
+			offset += buf.length;
+			this.setProgressBar(job, (offset * 100) / totalSize);
+		});
+	}
 	onDisconnect() {
 		this.debugLog("Closing socket");
 		this.socket.close();
@@ -92,6 +99,7 @@ class Veement extends Module {
 	}
 	httpRequest(path) {
 		let r = this.socket.request(path);
+		console.log(r[1]);
 		try {
 			return JSON.parse(r[1]);
 		} catch (e) {
