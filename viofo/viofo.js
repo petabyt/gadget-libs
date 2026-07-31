@@ -1,7 +1,6 @@
 import { WiFi } from "pak:wifi";
 import { Module } from "pak:runtime";
 import { HttpSocket } from "pak:http";
-import { test } from "test.js";
 
 // From https://github.com/Brandon-T/Viofo-Cam/blob/ec533e9080574d12bb490f377a2f01b7cd64485d/Viofo/Models/Constants/Command.swift
 let Commands = {
@@ -102,7 +101,7 @@ let Commands = {
 	WIFI_STATION_CONFIGURATION: 3032,
 };
 
-function parseXml(xml) {
+export function parseXml(xml) {
 	let offset = 0;
 	function skip() {
 		if (!(offset < xml.length)) return true;
@@ -149,7 +148,7 @@ function parseXml(xml) {
 	return parse({});
 }
 
-class Veement extends Module {
+export class Veement extends Module {
 	ip = "192.168.1.254";
 	wifiAdapter = null;
 	fileList = null;
@@ -173,6 +172,9 @@ class Veement extends Module {
 		});
 		let resp = socket.requestChunks(path, size, callback);
 		socket.close();
+	}
+	onDisconnect() {
+		this.socket.close();
 	}
 	onTryConnectWiFi(wifiAdapter, saved, job) {
 		this.wifiAdapter = wifiAdapter;
@@ -212,9 +214,6 @@ class Veement extends Module {
 			thumbBuf = temp;
 		});
 		this.addFileThumbnail(handle, thumbBuf.buffer);
-	}
-	onRunTest() {
-		test(this, parseXml);
 	}
 };
 Module.export(new Veement());

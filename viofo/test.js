@@ -1,4 +1,6 @@
-export function test(module, parseXml) {
+import { Veement, parseXml } from "viofo.js"
+
+Veement.prototype.onRunTest = function() {
 	let text = `
 <?xml version="1.0" encoding="UTF-8" ?>
 <LIST>
@@ -281,4 +283,5 @@ export function test(module, parseXml) {
 </LIST>
 `)
 	console.log(JSON.stringify(json));
-}
+};
+
