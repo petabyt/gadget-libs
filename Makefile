@@ -3,21 +3,24 @@ OUT_DIR := ../app/src/main/assets
 install: install_veement install_viofo
 
 compile_libfuji:
-	cmake -DCMAKE_TOOLCHAIN_FILE=toolchain.cmake -G Ninja -B build
-	cmake --build libfuji/build
+	cmake -DCMAKE_TOOLCHAIN_FILE=toolchain.cmake -G Ninja -B libfuji/wasmbuild -S libfuji/
+	cmake --build libfuji/wasmbuild
 install_libfuji:
 	jq . libfuji/libfuji.json
 	cp libfuji/libfuji.json $(OUT_DIR)/
 
+define compile_js
+	jq --arg hash "`git rev-parse --short HEAD`" '.gitHash = $$hash' $1$2
+	jq . $1$2 > $(OUT_DIR)/$2
+	esbuild $1$3 > /dev/zero
+	cp $1$3 $(OUT_DIR)/$3
+endef
+
 install_veement:
-	jq . veement/veement.json > $(OUT_DIR)/veement.json
-	esbuild veement/veement.js > /dev/zero
-	cp veement/veement.js $(OUT_DIR)/veement.js
+	$(call compile_js,veement/,veement.json,veement.js)
 
 install_viofo:
-	jq . viofo/viofo.json > $(OUT_DIR)/viofo.json
-	esbuild viofo/viofo.js > /dev/zero
-	cp viofo/viofo.js $(OUT_DIR)/viofo.js
+	$(call compile_js,viofo/,viofo.json,viofo.js)
 
 clean:
 	rm -rf $(OUT_DIR)/*
