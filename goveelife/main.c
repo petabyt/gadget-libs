@@ -186,23 +186,23 @@ static int on_try_connect_bluetooth(struct PakModule *mod, struct PakBtDevice *d
 			} else break;
 		}
 
-		pak_rt_set_dashboard_pane(mod, &(struct PakWidget) {
-			.name = "temp",
-			.title = "Temperature",
-			.type = PAK_GRAPH,
-			.u.graphv = {
-				.points = temp,
-				.n_points = i,
-			}
+		pak_rt_set_widget(mod, &(struct PakWidget) {
+				.name = "temp",
+				.title = "Temperature",
+				.type = PAK_GRAPH,
+				.u.graphv = {
+						.points = temp,
+						.n_points = i,
+				}
 		});
-		pak_rt_set_dashboard_pane(mod, &(struct PakWidget) {
-			.name = "humid",
-			.title = "Humidity",
-			.type = PAK_GRAPH,
-			.u.graphv = {
-				.points = humitity,
-				.n_points = i,
-			}
+		pak_rt_set_widget(mod, &(struct PakWidget) {
+				.name = "humid",
+				.title = "Humidity",
+				.type = PAK_GRAPH,
+				.u.graphv = {
+						.points = humitity,
+						.n_points = i,
+				}
 		});
 
 		pak_bt_set_watching_characteristic(mod->bt, chr, 0);

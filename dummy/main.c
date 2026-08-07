@@ -38,27 +38,27 @@ static int init(struct PakModule *mod) {
 	pak_rt_set_session_property(mod, PAK_PROP_NAME, "Dummy Device");
 	pak_rt_set_session_property(mod, PAK_PROP_FW_VER, "v1.2.3");
 
-	pak_rt_set_dashboard_pane(mod, &(struct PakWidget) {
-		.name = "button",
-		.title = "A Button",
-		.type = PAK_BUTTON,
+	pak_rt_set_widget(mod, &(struct PakWidget) {
+			.name = "button",
+			.title = "A Button",
+			.type = PAK_BUTTON,
 	});
 
-	pak_rt_set_dashboard_pane(mod, &(struct PakWidget) {
-		.name = "bool",
-		.title = "A Switch",
-		.type = PAK_BOOLEAN,
-		.u.boolv.v = 1,
+	pak_rt_set_widget(mod, &(struct PakWidget) {
+			.name = "bool",
+			.title = "A Switch",
+			.type = PAK_BOOLEAN,
+			.u.boolv.v = 1,
 	});
 
-	pak_rt_set_dashboard_pane(mod, &(struct PakWidget) {
-		.name = "dropdown",
-		.title = "Option",
-		.type = PAK_DROPDOWN,
-		.u.dropdownv = {
-			.index_value = 1,
-			.list = (const char *[]){"4.0l I6", "5.6l v8", "7.4l v8", "2.8l tdi", NULL}
-		}
+	pak_rt_set_widget(mod, &(struct PakWidget) {
+			.name = "dropdown",
+			.title = "Option",
+			.type = PAK_DROPDOWN,
+			.u.dropdownv = {
+					.index_value = 1,
+					.list = (const char *[]) {"4.0l I6", "5.6l v8", "7.4l v8", "2.8l tdi", NULL}
+			}
 	});
 
 	pak_rt_set_screen_supported(mod, PAK_SCREEN_DASHBOARD, 1);

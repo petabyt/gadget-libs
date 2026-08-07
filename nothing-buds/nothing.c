@@ -154,37 +154,37 @@ static int init(struct PakModule *mod) {
 	pak_rt_set_tick_interval(mod, 1000 * 1000);
 	mod->priv = calloc(1, sizeof(struct ModulePriv));
 
-	pak_rt_set_dashboard_pane(mod, &(struct PakWidget) {
-		.name = "lowlagmode",
-		.title = "Low Lag Mode",
-		.type = PAK_BOOLEAN,
-		.u.boolv.v = 0,
+	pak_rt_set_widget(mod, &(struct PakWidget) {
+			.name = "lowlagmode",
+			.title = "Low Lag Mode",
+			.type = PAK_BOOLEAN,
+			.u.boolv.v = 0,
 	});
 
 	const char *options[] = {"Low", "Mid", "High", "Adaptive", "Transparency Mode", "Noise cancellation", "Off", NULL};
 
-	pak_rt_set_dashboard_pane(mod, &(struct PakWidget) {
-		.name = "noisecancellation",
-		.title = "Noise Cancellation",
-		.type = PAK_DROPDOWN,
-		.u.dropdownv = {
-			.index_value = 0,
-			.list = options
-		}
+	pak_rt_set_widget(mod, &(struct PakWidget) {
+			.name = "noisecancellation",
+			.title = "Noise Cancellation",
+			.type = PAK_DROPDOWN,
+			.u.dropdownv = {
+					.index_value = 0,
+					.list = options
+			}
 	});
 
-	pak_rt_set_dashboard_pane(mod, &(struct PakWidget) {
-		.name = "in-ear-detection",
-		.title = "In-ear detection",
-		.type = PAK_BOOLEAN,
-		.u.boolv.v = 0,
+	pak_rt_set_widget(mod, &(struct PakWidget) {
+			.name = "in-ear-detection",
+			.title = "In-ear detection",
+			.type = PAK_BOOLEAN,
+			.u.boolv.v = 0,
 	});
 
-	pak_rt_set_dashboard_pane(mod, &(struct PakWidget) {
-		.name = "ultrabass",
-		.title = "Ultra bass",
-		.type = PAK_BOOLEAN,
-		.u.boolv.v = 0,
+	pak_rt_set_widget(mod, &(struct PakWidget) {
+			.name = "ultrabass",
+			.title = "Ultra bass",
+			.type = PAK_BOOLEAN,
+			.u.boolv.v = 0,
 	});
 
 	return 0;
