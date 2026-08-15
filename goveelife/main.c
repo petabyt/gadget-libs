@@ -232,11 +232,10 @@ static int on_disconnect(struct PakModule *mod) {
 	return 0;
 }
 
-int get_module_goveelife(struct PakModule *mod) {
+int get_module(struct PakModule *mod) {
 	mod->init = init;
 	mod->on_try_connect_bluetooth = on_try_connect_bluetooth;
 	mod->on_idle_tick = on_idle_tick;
 	mod->on_disconnect = on_disconnect;
 	return 0;
 }
-__attribute__((weak)) int get_module(struct PakModule *mod) { return get_module_goveelife(mod); }
