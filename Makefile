@@ -1,36 +1,36 @@
 OUT_DIR := ../app/src/main/assets
 LIBPAK_DIR := ../libpak
-CMAKE_FLAGS := -DCMAKE_TOOLCHAIN_FILE=$(PWD)/$(LIBPAK_DIR)/toolchain/toolchain.cmake -DCMAKE_PROJECT_INCLUDE=$(PWD)/$(LIBPAK_DIR)/toolchain/pakrt.cmake
+CMAKE_FLAGS := -DCMAKE_TOOLCHAIN_FILE=$(PWD)/$(LIBPAK_DIR)/toolchain/toolchain.cmake -DMAKE_EXECUTABLE=ON -DCMAKE_PROJECT_INCLUDE=$(PWD)/$(LIBPAK_DIR)/toolchain/pakrt.cmake
 
-install: install_veement install_viofo
-
-compile_libfuji:
-	cmake -DCMAKE_TOOLCHAIN_FILE=../$(LIBPAK_DIR)/toolchain/toolchain.cmake -G Ninja -B libfuji/wasmbuild -S libfuji/
-	cmake --build libfuji/wasmbuild
-install_libfuji:
-	jq . libfuji/libfuji.json
-	cp libfuji/libfuji.json $(OUT_DIR)/
-
-compile_ptp2:
-	cmake $(CMAKE_FLAGS) -G Ninja -B ptp2/wasmbuild -S ptp2/
-	cmake --build ptp2/wasmbuild
-
-compile_libfurble:
-	cmake $(CMAKE_FLAGS) -G Ninja -B libfurble/glue/wasmbuild -S libfurble/glue/
-	cmake --build libfurble/glue/wasmbuild
-
+# $1 directory
+# $2 manifest filename
+# $3 script filename
 define compile_js
-	jq --arg hash "`git rev-parse --short HEAD`" '.gitHash = $$hash' $1$2
-	jq . $1$2 > $(OUT_DIR)/$2
+	jq --arg hash "`git rev-parse --short HEAD`" '.gitHash = $$hash' $1$2 > $(OUT_DIR)/$2
 	esbuild $1$3 > /dev/zero
 	cp $1$3 $(OUT_DIR)/$3
 endef
 
-install_veement:
-	$(call compile_js,veement/,veement.json,veement.js)
+# $1 directory
+# $2 manifest filename
+# $3 wasm executable output filename
+define compile_cmake
+	cmake $(CMAKE_FLAGS) -G Ninja -B build/$3 -S $1
+	cmake --build build/$3
+	jq --arg hash "`git rev-parse --short HEAD`" '.gitHash = $$hash' $1$2 > $(OUT_DIR)/$2
+	cp build/$3/$3 $(OUT_DIR)/$3.wasm
+endef
 
-install_viofo:
+install:
+	mkdir -p build
+	$(call compile_js,veement/,veement.json,veement.js)
 	$(call compile_js,viofo/,viofo.json,viofo.js)
 
+install_full: install
+	$(call compile_cmake,dummy/,dummy.json,dummy)
+#$(call compile_cmake,libfuji/,libfuji.json,libfuji)
+	$(call compile_cmake,ptp2/,ptp2.json,ptp2)
+#$(call compile_cmake,furble/glue/,libfuji.json,libfuji)
+
 clean:
-	rm -rf $(OUT_DIR)/*
+	rm -rf $(OUT_DIR)/* build/
