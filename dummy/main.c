@@ -75,9 +75,14 @@ static int init(struct PakModule *mod) {
 			.is_live = 1,
 		});
 		mod->priv->is_live = 1;
+		pak_rt_set_widget(mod, &(struct PakWidget) {
+			.name = "img",
+			.title = "Trigger capture",
+			.type = PAK_BUTTON,
+		});
 	}
 
-	pak_rt_set_tick_interval(mod, 1000 * 100);
+	pak_rt_set_tick_interval(mod, 1000 * 200);
 	return 0;
 }
 
@@ -88,17 +93,6 @@ static int on_try_connect_wifi(struct PakModule *mod, struct PakWiFiAdapter *han
 static int on_idle_tick(struct PakModule *mod, unsigned int us_since_last_tick) {
 	pak_rt_set_session_property_int(mod, PAK_PROP_BATTERY_MAIN, mod->priv->x);
 	if ((mod->priv->x += 10) > 100) mod->priv->x = 0;
-
-	if (mod->priv->is_live) {
-		struct PakFileHandle file = { .index_in_view = 0, .storage_name = "live" };
-		pak_rt_add_file_metadata(mod, &file, &(struct PakFileMetadata){
-			.filename = "live.jpg",
-			.mime_type = "image/jpeg",
-		});
-		pak_rt_add_file_contents(mod, &file, _dummy_jpeg_jpg, sizeof(_dummy_jpeg_jpg), 0, sizeof(_dummy_jpeg_jpg));
-		mod->priv->is_live = 0;
-	}
-
 	return 0;
 }
 
@@ -149,7 +143,7 @@ static int on_request_thumbnail(struct PakModule *mod, int job, struct PakFileHa
 static int on_request_file_metadata(struct PakModule *mod, int job, struct PakFileHandle *file) {
 	usleep(100000);
 	char name[32];
-	sprintf(name, "DSCF%04u.JPG", file->index_in_view * 13);
+	sprintf(name, "ABCD%04u.JPG", file->index_in_view * 13);
 	pak_rt_add_file_metadata(mod, file, &(struct PakFileMetadata){
 		.filename = name,
 		.file_size = 123,
@@ -175,6 +169,13 @@ static int on_custom_command(struct PakModule *mod, int job, int argc, const cha
 
 static int on_prop_changed(struct PakModule *mod, int job, struct PakWidget *prop) {
 	pak_global_log("on_prop_changed %s", prop->name);
+	if (!strcmp(prop->name, "img")) {
+		static int n_downloaded = 0;
+		pak_rt_add_file_metadata(mod, &(struct PakFileHandle){.index_in_view = n_downloaded++, .storage_name = "live"}, &(struct PakFileMetadata){
+			.filename = "DSCF1001.JPG",
+			.mime_type = "image/jpeg",
+		});
+	}
 	return 0;
 }
 

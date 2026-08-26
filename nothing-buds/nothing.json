@@ -4,9 +4,15 @@
   "author": "Daniel Cook",
   "version": 1,
   "isDraft": true,
+  "moduleType": "so",
+  "modulePath": "libcmfnothingaudio.so",
   "target": {
     "deviceType": "earbuds",
-    "companies": ["Nothing"],
-    "products": ["CMF 2"]
+    "summary": "CMF Nothing Audio devices",
+    "company": "Nothing",
+    "products": ["Buds Pro 2", "Buds 2"],
+    "bluetoothFilter": [
+      {"namePattern": "CMF.*", "mfgData": "0x31,0x44,0x42,0xee,0xbe,0x2c", "mfgDataMask": "0xff,0xff"}
+    ]
   }
 }
