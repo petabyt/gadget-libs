@@ -6,7 +6,7 @@ as cameras, earbuds, dashcams, etc.
 Rules for in tree projects:
 - Code made from inspecting/decompiling is not allowed in this tree (but might be included through submodule)
 - Only black box approach is allowed (and perhaps clean room)
-- LLM/agent usage must be done through offline/local models
+- LLM use in reverse-engineering can't be done through cloud models that may do data collection
 - No copyrighted blobs
 
 Technique for black-box reversing on a stock Android phone:
