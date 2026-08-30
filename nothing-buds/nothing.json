@@ -11,8 +11,14 @@
     "summary": "CMF Nothing Audio devices",
     "company": "Nothing",
     "products": ["Buds Pro 2", "Buds 2"],
-    "bluetoothFilter": [
-      {"namePattern": "CMF.*", "mfgData": "0x31,0x44,0x42,0xee,0xbe,0x2c", "mfgDataMask": "0xff,0xff"}
+    "bluetoothFilters": [
+      {
+        "namePattern": "CMF.*",
+        "rfcommUuids": ["aeac4a03-dff5-498f-843a-34487cf133eb"],
+        "classic": true,
+        "mfgData": "0x31,0x44,0x42,0xee,0xbe,0x2c",
+        "mfgDataMask": "0xff,0xff"
+      }
     ]
   }
 }

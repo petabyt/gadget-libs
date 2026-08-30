@@ -14,7 +14,7 @@ struct ModulePriv {
 
 struct __attribute__((packed)) Request {
 	uint8_t magic;
-	uint16_t transaction_counter;
+	uint16_t unknown;
 	uint16_t command;
 	uint16_t payload_length;
 	uint8_t message_counter;
@@ -36,6 +36,15 @@ struct __attribute__((packed)) BatteryStat {
 		uint8_t id;
 		uint8_t status;
 	}batteries[];
+};
+
+struct __attribute__((packed)) Equalizer {
+	uint8_t length;
+	uint16_t unknown_zero;
+	uint8_t unknown[5];
+	uint8_t mid[13];
+	uint8_t treble[13];
+	uint8_t bass[13];
 };
 
 #define GET_BATTERY 0xc007
@@ -104,20 +113,22 @@ static int transaction(struct ModulePriv *priv, void *resp, unsigned int max_rea
 	char buffer[500];
 	struct Request *req = (struct Request *)buffer;
 	req->magic = 0x55;
-	req->transaction_counter = 0x0160;
+	req->unknown = 0x0160;
 	req->command = cmd;
 	req->payload_length = payload_length;
 	req->message_counter = priv->message_counter++;
 	if (payload != NULL) memcpy(req->payload, payload, payload_length);
 	((uint16_t *)&req->payload[payload_length])[0] = crc16_modbus((uint8_t *)req, sizeof(struct Request) + payload_length);
 
+	hexdump(req, sizeof(struct Request) + payload_length + 2);
 	int rc = pak_bt_write(conn, req, sizeof(struct Request) + payload_length + 2);
+	pak_global_log("pak_bt_write: %d", rc);
 	if (rc < 0) {
-		pak_global_log("pak_bt_write: %d", rc);
 		return -1;
 	}
 	rc = pak_bt_read(conn, resp, max_read);
-	pak_global_log("pak_bt_write: %d", rc);
+	hexdump(resp, rc);
+	pak_global_log("pak_bt_read: %d", rc);
 	if (rc < 0) return -1;
 	return 0;
 }
@@ -237,15 +248,38 @@ static int on_switch_screen(struct PakModule *mod, int old_screen, int new_scree
 	return 0;
 }
 
-static int on_prop_changed(struct PakModule *mod, int job, struct PakWidget *prop) {
+static int set_ultra_bass(struct PakModule *mod, int v) {
 	char buf[64];
+	return transaction(mod->priv, buf, sizeof(buf), SET_ULTRA_BASS, (uint8_t[]){
+		v ? 1 : 0, // enabled
+		0x6 // bass level
+	}, 2);
+}
+
+static int set_noise_cancellation(struct PakModule *mod, int v) {
+	char buf[64];
+	return transaction(mod->priv, buf, sizeof(buf), SET_NOISE_CANCELLATION, (uint8_t[]){
+		1, 4, 0
+	}, 3);
+}
+
+static int on_prop_changed(struct PakModule *mod, int job, struct PakWidget *prop) {
 	if (!strcmp(prop->name, "ultrabass")) {
-		transaction(mod->priv, buf, sizeof(buf), SET_ULTRA_BASS, (uint8_t[]){
-			prop->u.boolv.v ? 1 : 0, // enabled
-			0x6 // bass level
-		}, 2);
+		set_ultra_bass(mod, prop->u.boolv.v);
 	}
 	pak_global_log("on_prop_changed %s", prop->name);
+	return 0;
+}
+
+static int on_run_test(struct PakModule *mod, int job) {
+	pak_debug_log(mod, "Hello");
+	struct PakBtAdapter *adapter = pak_bt_get_adapter(mod->bt, 0);
+	if (adapter == NULL) return -1;
+	struct PakBtDevice *dev = pak_bt_get_device(mod->bt, adapter, 0, PAK_FILTER_CONNECTED);
+	if (dev == NULL) return -2;
+	pak_debug_log(mod, "name: %s", dev->name);
+	on_try_connect_bluetooth(mod, dev, NULL, job);
+	set_noise_cancellation(mod, 0);
 	return 0;
 }
 
@@ -253,6 +287,7 @@ int get_module(struct PakModule *mod) {
 	mod->init = init;
 	mod->on_try_connect_bluetooth = on_try_connect_bluetooth;
 	mod->on_idle_tick = on_idle_tick;
+	mod->on_run_test = on_run_test;
 	mod->on_disconnect = on_disconnect;
 	mod->on_switch_screen = on_switch_screen;
 	mod->on_setting_changed = on_prop_changed;

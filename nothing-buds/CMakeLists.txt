@@ -1,6 +1,17 @@
 cmake_minimum_required(VERSION 3.10)
 project(cmfnothingaudio)
 
+if(NOT TARGET pakrt)
+    find_package(PkgConfig)
+    if(PKG_CONFIG_FOUND AND NOT ANDROID)
+        list(APPEND CMAKE_PREFIX_PATH "/usr/local")
+        pkg_check_modules(LIBPAK IMPORTED_TARGET GLOBAL libpak)
+        if(LIBPAK_FOUND)
+            add_library(pakrt ALIAS PkgConfig::LIBPAK)
+        endif()
+    endif()
+endif()
+
 if(MAKE_EXECUTABLE)
     add_executable(cmfnothingaudio nothing.c)
 else()
