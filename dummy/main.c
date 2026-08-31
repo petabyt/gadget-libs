@@ -2,7 +2,6 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <runtime.h>
-#include <runtime_ext.h>
 #include <wifi.h>
 #include "dummyjpg.h"
 
@@ -45,21 +44,18 @@ static int init(struct PakModule *mod) {
 			.n_files_total = 50,
 		});
 
-		pak_rt_set_widget(mod, &(struct PakWidget) {
-				.name = "button",
+		pak_rt_set_widget(mod, "button", &(struct PakWidget) {
 				.title = "A Button",
 				.type = PAK_BUTTON,
 		});
 
-		pak_rt_set_widget(mod, &(struct PakWidget) {
-				.name = "bool",
+		pak_rt_set_widget(mod, "bool", &(struct PakWidget) {
 				.title = "A Switch",
 				.type = PAK_BOOLEAN,
 				.u.boolv.v = 1,
 		});
 
-		pak_rt_set_widget(mod, &(struct PakWidget) {
-				.name = "dropdown",
+		pak_rt_set_widget(mod, "dropdown", &(struct PakWidget) {
 				.title = "Option",
 				.type = PAK_DROPDOWN,
 				.u.dropdownv = {
@@ -75,8 +71,7 @@ static int init(struct PakModule *mod) {
 			.is_live = 1,
 		});
 		mod->priv->is_live = 1;
-		pak_rt_set_widget(mod, &(struct PakWidget) {
-			.name = "img",
+		pak_rt_set_widget(mod, "img", &(struct PakWidget) {
 			.title = "Trigger capture",
 			.type = PAK_BUTTON,
 		});
@@ -131,13 +126,7 @@ static int on_request_file_contents(struct PakModule *mod, int job, struct PakFi
 
 static int on_request_thumbnail(struct PakModule *mod, int job, struct PakFileHandle *file) {
 	usleep(100000);
-	struct ExifParser metadata;
-	int rc = exif_start_raw(&metadata, _dummy_jpeg_jpg, sizeof(_dummy_jpeg_jpg), NULL, NULL);
-	if (rc == 0 && metadata.thumb_of != 0) {
-		pak_rt_add_file_thumbnail(mod, file, _dummy_jpeg_jpg + metadata.thumb_of, metadata.thumb_size);
-		return 0;
-	}
-	return -1;
+	return pak_rt_add_file_thumbnail(mod, file, _dummy_thumb_jpg, sizeof(_dummy_thumb_jpg));
 }
 
 static int on_request_file_metadata(struct PakModule *mod, int job, struct PakFileHandle *file) {
@@ -167,9 +156,9 @@ static int on_custom_command(struct PakModule *mod, int job, int argc, const cha
 	return 0;
 }
 
-static int on_prop_changed(struct PakModule *mod, int job, struct PakWidget *prop) {
-	pak_global_log("on_prop_changed %s", prop->name);
-	if (!strcmp(prop->name, "img")) {
+static int on_prop_changed(struct PakModule *mod, int job, const char *name, struct PakWidget *prop) {
+	pak_global_log("on_prop_changed %s", name);
+	if (!strcmp(name, "img")) {
 		static int n_downloaded = 0;
 		pak_rt_add_file_metadata(mod, &(struct PakFileHandle){.index_in_view = n_downloaded++, .storage_name = "live"}, &(struct PakFileMetadata){
 			.filename = "DSCF1001.JPG",

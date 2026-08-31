@@ -14,7 +14,8 @@ struct ModulePriv {
 
 struct __attribute__((packed)) Request {
 	uint8_t magic;
-	uint16_t unknown;
+	uint8_t packet_type; // 0x60 or 0x00
+	uint8_t unknown; // either 1 or 0
 	uint16_t command;
 	uint16_t payload_length;
 	uint8_t message_counter;
@@ -41,10 +42,13 @@ struct __attribute__((packed)) BatteryStat {
 struct __attribute__((packed)) Equalizer {
 	uint8_t length;
 	uint16_t unknown_zero;
-	uint8_t unknown[5];
-	uint8_t mid[13];
-	uint8_t treble[13];
-	uint8_t bass[13];
+	uint8_t unknown[5]; // lower midrange band? overall volume? gets automatically set by cmf app
+	struct EqualizerBand {
+		uint8_t value; // abs(val) * 0x20
+		uint8_t sign; // 0x40 positive, 0xc0 negative, 0x0 zero, 0x80 silence
+		uint8_t unknown_hardcoded[11];
+	}bands[3]; // mid, treble, bass
+	uint8_t unknown_zero2[6];
 };
 
 #define GET_BATTERY 0xc007
@@ -113,7 +117,8 @@ static int transaction(struct ModulePriv *priv, void *resp, unsigned int max_rea
 	char buffer[500];
 	struct Request *req = (struct Request *)buffer;
 	req->magic = 0x55;
-	req->unknown = 0x0160;
+	req->packet_type = 0x60;
+	req->unknown = 0x1;
 	req->command = cmd;
 	req->payload_length = payload_length;
 	req->message_counter = priv->message_counter++;
@@ -165,8 +170,7 @@ static int init(struct PakModule *mod) {
 	pak_rt_set_tick_interval(mod, 1000 * 1000);
 	mod->priv = calloc(1, sizeof(struct ModulePriv));
 
-	pak_rt_set_widget(mod, &(struct PakWidget) {
-			.name = "lowlagmode",
+	pak_rt_set_widget(mod, "lowlagmode", &(struct PakWidget) {
 			.title = "Low Lag Mode",
 			.type = PAK_BOOLEAN,
 			.u.boolv.v = 0,
@@ -174,8 +178,7 @@ static int init(struct PakModule *mod) {
 
 	const char *options[] = {"Low", "Mid", "High", "Adaptive", "Transparency Mode", "Noise cancellation", "Off", NULL};
 
-	pak_rt_set_widget(mod, &(struct PakWidget) {
-			.name = "noisecancellation",
+	pak_rt_set_widget(mod, "noisecancellation", &(struct PakWidget) {
 			.title = "Noise Cancellation",
 			.type = PAK_DROPDOWN,
 			.u.dropdownv = {
@@ -184,15 +187,13 @@ static int init(struct PakModule *mod) {
 			}
 	});
 
-	pak_rt_set_widget(mod, &(struct PakWidget) {
-			.name = "in-ear-detection",
+	pak_rt_set_widget(mod, "in-ear-detection", &(struct PakWidget) {
 			.title = "In-ear detection",
 			.type = PAK_BOOLEAN,
 			.u.boolv.v = 0,
 	});
 
-	pak_rt_set_widget(mod, &(struct PakWidget) {
-			.name = "ultrabass",
+	pak_rt_set_widget(mod, "ultrabass", &(struct PakWidget) {
 			.title = "Ultra bass",
 			.type = PAK_BOOLEAN,
 			.u.boolv.v = 0,
@@ -263,11 +264,11 @@ static int set_noise_cancellation(struct PakModule *mod, int v) {
 	}, 3);
 }
 
-static int on_prop_changed(struct PakModule *mod, int job, struct PakWidget *prop) {
-	if (!strcmp(prop->name, "ultrabass")) {
+static int on_prop_changed(struct PakModule *mod, int job, const char *name, struct PakWidget *prop) {
+	if (!strcmp(name, "ultrabass")) {
 		set_ultra_bass(mod, prop->u.boolv.v);
 	}
-	pak_global_log("on_prop_changed %s", prop->name);
+	pak_global_log("on_prop_changed %s", name);
 	return 0;
 }
 

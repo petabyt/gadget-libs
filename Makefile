@@ -1,6 +1,9 @@
 OUT_DIR := ../app/src/main/assets
+BUILD_DIR := build
 LIBPAK_DIR := ../libpak
 CMAKE_FLAGS := -DCMAKE_TOOLCHAIN_FILE=$(PWD)/$(LIBPAK_DIR)/toolchain/toolchain.cmake -DMAKE_EXECUTABLE=ON -DCMAKE_PROJECT_INCLUDE=$(PWD)/$(LIBPAK_DIR)/toolchain/pakrt.cmake
+
+CMAKE_FLAGS += -DPTP_NO_USB=ON -DLIBFUJI_MODULE=ON
 
 # $1 directory
 # $2 manifest filename
@@ -15,22 +18,36 @@ endef
 # $2 manifest filename
 # $3 wasm executable output filename
 define compile_cmake
-	cmake $(CMAKE_FLAGS) -G Ninja -B build/$3 -S $1
-	cmake --build build/$3
+	cmake $(CMAKE_FLAGS) -G Ninja -B $(BUILD_DIR)/$3 -S $1
+	cmake --build $(BUILD_DIR)/$3
 	jq --arg hash "`git rev-parse --short HEAD`" '.gitHash = $$hash' $1$2 > $(OUT_DIR)/$2
-	cp build/$3/$3 $(OUT_DIR)/$3.wasm
+	cp $(BUILD_DIR)/$3/$3 $(OUT_DIR)/$3.wasm
+endef
+
+define add_manifest
+	jq --arg hash "`git rev-parse --short HEAD`" '.gitHash = $$hash' $1$2 > $(OUT_DIR)/$2
 endef
 
 install:
-	mkdir -p build
+	mkdir -p $(BUILD_DIR)
 	$(call compile_js,veement/,veement.json,veement.js)
 	$(call compile_js,viofo/,viofo.json,viofo.js)
 
+	$(call add_manifest,ptp2/,ptp2.json)
+	$(call add_manifest,libfuji/,libfuji.json)
+	$(call add_manifest,nothing-buds/,nothing.json)
+	$(call add_manifest,goveelife/,goveelife.json)
+
 install_full: install
+	$(call compile_cmake,goveelife/,goveelife.json,goveelife)
 	$(call compile_cmake,dummy/,dummy.json,dummy)
-#$(call compile_cmake,libfuji/,libfuji.json,libfuji)
+	$(call compile_cmake,nothing-buds/,nothing.json,cmfnothingaudio)
+	$(call compile_cmake,libfuji/,libfuji.json,fuji)
 	$(call compile_cmake,ptp2/,ptp2.json,ptp2)
-#$(call compile_cmake,furble/glue/,libfuji.json,libfuji)
+	$(call compile_cmake,libfurble/glue/,furble.json,furble)
+
+install_full_www:
+	$(MAKE) install_full OUT_DIR=$(PWD)/../../fudge-www/modules
 
 clean:
 	rm -rf $(OUT_DIR)/* build/

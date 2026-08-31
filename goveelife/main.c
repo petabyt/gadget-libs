@@ -186,8 +186,7 @@ static int on_try_connect_bluetooth(struct PakModule *mod, struct PakBtDevice *d
 			} else break;
 		}
 
-		pak_rt_set_widget(mod, &(struct PakWidget) {
-				.name = "temp",
+		pak_rt_set_widget(mod, "temp", &(struct PakWidget) {
 				.title = "Temperature",
 				.type = PAK_GRAPH,
 				.u.graphv = {
@@ -195,8 +194,7 @@ static int on_try_connect_bluetooth(struct PakModule *mod, struct PakBtDevice *d
 						.n_points = i,
 				}
 		});
-		pak_rt_set_widget(mod, &(struct PakWidget) {
-				.name = "humid",
+		pak_rt_set_widget(mod, "temp", &(struct PakWidget) {
 				.title = "Humidity",
 				.type = PAK_GRAPH,
 				.u.graphv = {
