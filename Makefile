@@ -28,17 +28,18 @@ define add_manifest
 	jq --arg hash "`git rev-parse --short HEAD`" '.gitHash = $$hash' $1$2 > $(OUT_DIR)/$2
 endef
 
-install:
+install_fudge:
 	mkdir -p $(BUILD_DIR)
 	$(call compile_js,veement/,veement.json,veement.js)
 	$(call compile_js,viofo/,viofo.json,viofo.js)
-
-	$(call add_manifest,ptp2/,ptp2.json)
 	$(call add_manifest,libfuji/,libfuji.json)
 	$(call add_manifest,nothing-buds/,nothing.json)
 	$(call add_manifest,goveelife/,goveelife.json)
 
-install_full: install
+install_full:
+	mkdir -p $(BUILD_DIR)
+	$(call compile_js,veement/,veement.json,veement.js)
+	$(call compile_js,viofo/,viofo.json,viofo.js)
 	$(call compile_cmake,goveelife/,goveelife.json,goveelife)
 	$(call compile_cmake,dummy/,dummy.json,dummy)
 	$(call compile_cmake,nothing-buds/,nothing.json,cmfnothingaudio)
