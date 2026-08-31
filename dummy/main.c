@@ -4,6 +4,7 @@
 #include <runtime.h>
 #include <wifi.h>
 #include "dummyjpg.h"
+#include "dummythumb.h"
 
 struct ModulePriv {
 	int x;
