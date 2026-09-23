@@ -64,6 +64,34 @@ static int init(struct PakModule *mod) {
 						.list = (const char *[]) {"4.0l I6", "5.6l v8", "7.4l v8", "2.8l tdi", NULL}
 				}
 		});
+
+		pak_rt_set_widget(mod, "iso", &(struct PakWidget) {
+				.title = "ISO",
+				.group = PAK_GROUP_LIVEVIEW,
+				.type = PAK_DROPDOWN,
+				.u.dropdownv = {
+						.index_value = -1,
+						.list = (const char *[]) {"6400", "3200", "1600", "800", "600", "400", "200", "100", NULL}
+				}
+		});
+		pak_rt_set_widget(mod, "shutter-speed", &(struct PakWidget) {
+				.title = "Shutter Speed",
+				.group = PAK_GROUP_LIVEVIEW,
+				.type = PAK_DROPDOWN,
+				.u.dropdownv = {
+						.index_value = -1,
+						.list = (const char *[]) {"1/8000", "1/4000", "1/2000", "1/1000", "1/500", "1/250", "1/125", "1/60", "1/30", "1/15", "1/8", "1/4", "1/2", "1\"", "2\"", "4\"", "8\"", "15\"", "30\"", NULL}
+				}
+		});
+		pak_rt_set_widget(mod, "aperture", &(struct PakWidget) {
+				.title = "Aperture",
+				.group = PAK_GROUP_LIVEVIEW,
+				.type = PAK_DROPDOWN,
+				.u.dropdownv = {
+						.index_value = -1,
+						.list = (const char *[]) {"f/1.0", "f/1.4", "f/2", "f/2.8", "f/4", "f/5.6", "f/8", "f/11", "f/16", "f/22", "f/32", NULL}
+				}
+		});
 	} else if (!strcmp(setup_option, "tethered")) {
 		pak_rt_set_screen_supported(mod, PAK_SCREEN_DASHBOARD, 1);
 		pak_rt_set_screen_supported(mod, PAK_SCREEN_LIVE_FEED, 1);
