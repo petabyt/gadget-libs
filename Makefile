@@ -54,6 +54,7 @@ install_fudge: $(CERT_LOC)
 	$(call add_manifest,libfuji/,libfuji.json)
 	$(call add_manifest,nothing-buds/,nothing.json)
 	$(call add_manifest,goveelife/,goveelife.json)
+	$(call add_manifest,dummy/,dummy.json)
 
 install_full: $(CERT_LOC)
 	mkdir -p $(BUILD_DIR)
