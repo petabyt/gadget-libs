@@ -6,7 +6,7 @@
   "isDraft": true,
   "moduleType": "so",
   "modulePath": "libcmfnothingaudio.so",
-  "targets": {
+  "targets": [{
     "deviceType": "earbuds",
     "summary": "CMF Nothing Audio devices",
     "company": "Nothing",
@@ -20,5 +20,5 @@
         "mfgDataMask": "0xff,0xff"
       }
     ]
-  }
+  }]
 }

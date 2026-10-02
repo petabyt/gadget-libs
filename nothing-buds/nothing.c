@@ -39,21 +39,11 @@ struct __attribute__((packed)) BatteryStat {
 	}batteries[];
 };
 
-struct __attribute__((packed)) Equalizer {
-	uint8_t length;
-	uint16_t unknown_zero;
-	uint8_t unknown[5]; // lower midrange band? overall volume? gets automatically set by cmf app
-	struct EqualizerBand {
-		uint8_t value; // abs(val) * 0x20
-		uint8_t sign; // 0x40 positive, 0xc0 negative, 0x0 zero, 0x80 silence
-		uint8_t unknown_hardcoded[11];
-	}bands[3]; // mid, treble, bass
-	uint8_t unknown_zero2[6];
-};
-
 #define GET_BATTERY 0xc007
 #define GET_FW_VER 0xc042
 #define SET_EAR_DETECTION 0xf004
+#define SET_LOG_LAG_MODE 0xf040
+#define SET_CUSTOM_EQUALIZER_VALUE 0xf041
 #define SET_ULTRA_BASS 0xf051
 #define GET_ULTRA_BASS 0xc04e
 #define SET_NOISE_CANCELLATION 0xf00f
@@ -61,7 +51,7 @@ struct __attribute__((packed)) Equalizer {
 #define SET_EQUALIZER_PRESET 0xf01d
 #define GET_EQUALIZER_PRESET 0xc050
 
-#define GET_EQ 0xc01f
+#define GET_EQUALIZER_VALUE 0xc01f
 
 // https://developers.google.com/nearby/fast-pair/specifications/extensions/deviceinformation
 static int google_fastpair(struct PakBt *bt, struct PakBtDevice *dev) {
@@ -112,7 +102,7 @@ void hexdump(void *data, unsigned int length) {
 	printf("\n");
 }
 
-static int transaction(struct ModulePriv *priv, void *resp, unsigned int max_read, uint16_t cmd, void *payload, unsigned int payload_length) {
+static int transaction(struct ModulePriv *priv, void *resp, unsigned int max_read, uint16_t cmd, const void *payload, unsigned int payload_length) {
 	struct PakBtSocket *conn = priv->conn;
 	char buffer[500];
 	struct Request *req = (struct Request *)buffer;
@@ -166,6 +156,112 @@ static int update_battery(struct PakModule *mod) {
 	return 0;
 }
 
+static int set_ultra_bass(struct PakModule *mod, int v) {
+	char buf[64];
+	return transaction(mod->priv, buf, sizeof(buf), SET_ULTRA_BASS, (uint8_t[]){
+		v ? 1 : 0, // enabled
+		0x6 // bass level
+	}, 2);
+}
+
+const static uint8_t ANC_LOW[] = {1, 3, 0};
+const static uint8_t ANC_MID[] = {1, 2, 0};
+const static uint8_t ANC_HIGH[] = {1, 1, 0};
+const static uint8_t ANC_ADAPTIVE[] = {1, 4, 0};
+const static uint8_t ANC_TRANSPARENCY_MODE[] = {1, 7, 0};
+const static uint8_t ANC_OFF[] = {1, 5, 0};
+const static uint8_t ANC_NOISE_CANCELLATION[] = {1, 4, 0};
+
+const static uint8_t *anc_vals[] = {ANC_LOW, ANC_MID, ANC_HIGH, ANC_ADAPTIVE, ANC_TRANSPARENCY_MODE, ANC_OFF, ANC_NOISE_CANCELLATION};
+const char *anc_options[] = {"Low", "Mid", "High", "Adaptive", "Transparency Mode", "Noise cancellation", "Off", NULL};
+
+static int set_noise_cancellation(struct PakModule *mod, int val_idx) {
+	char buf[64];
+	return transaction(mod->priv, buf, sizeof(buf), SET_NOISE_CANCELLATION, anc_vals[val_idx], 3);
+}
+
+struct __attribute__((packed)) Equalizer {
+	uint8_t length;
+	uint16_t unknown_zero;
+
+	struct EqualizerBandValue {
+		uint8_t value;
+		uint8_t sign;
+	}unknown_band;  // lower midrange band? overall volume? gets automatically set by cmf app
+	uint8_t unknown_band_byte;
+	uint8_t unknown_zero1[2];
+	struct EqualizerBand {
+		struct EqualizerBandValue value;
+		// uint8_t value; // abs(val) * 0x20
+		// uint8_t sign; // 0x40 positive, 0xc0 negative, 0x0 zero, 0x80 boost?
+		uint8_t unknown_hardcoded[11];
+	}bands[3]; // mid, treble, bass
+	uint8_t unknown_zero2[6];
+};
+
+static int update_eq_widget(struct PakModule *mod, int disabled) {
+	return pak_rt_set_widget(mod, "equalizer", &(struct PakWidget) {
+		.title = "Equalizer",
+		.type = PAK_EQUALIZER,
+		.group = PAK_GROUP_DEFAULT,
+		.disabled = disabled,
+		.u.equalizerv = { .bands = (struct PakBand[]){
+			{ .value = 0, .name = "Midtones", .max = 6, .min = -6},
+			{ .value = 0, .name = "Treble", .max = 6, .min = -6},
+			{ .value = 0, .name = "Bass", .max = 6, .min = -6},
+			{ .value = 0, .name = "Mystery", .max = 6, .min = -6},
+			NULL
+		} },
+	});
+}
+
+static struct EqualizerBandValue to_val(int n) {
+	if (n > 0) {
+		return (struct EqualizerBandValue){n * 0x20, 0x40};
+	} else if (n == 0) return (struct EqualizerBandValue){0, 0};
+	return (struct EqualizerBandValue){n * 0x20, 0xc0};
+}
+
+static int set_equalizer_custom_value(struct PakModule *mod, struct PakEqualizer *eq) {
+	char buf[64];
+
+	return transaction(mod->priv, buf, sizeof(buf), 0xf041, (uint8_t *)&(struct Equalizer){
+		.length = 3,
+		.unknown_band = to_val(eq->bands[3].value),
+		.unknown_band_byte = 1,
+		.bands = {
+			{to_val(eq->bands[0].value), {0x00, 0x00, 0x75, 0x44, 0xC3, 0xF5, 0x28, 0x3F, 0x02, 0x00, 0x00}},
+			{to_val(eq->bands[1].value), {0x00, 0xC0, 0x5A, 0x45, 0x00, 0x00, 0x80, 0x3F, 0x00, 0x00, 0x00}},
+			{to_val(eq->bands[2].value), {0x00, 0x00, 0x0C, 0x43, 0xCD, 0xCC, 0x4C, 0x3F, 0x00, 0x00, 0x00}},
+		}
+	}, 0x35);
+}
+
+const static uint8_t PRESET_DIRAC[] = {0, 0};
+const static uint8_t PRESET_ROCK[] = {1, 0};
+const static uint8_t PRESET_CLASSICAL[] = {5, 0};
+const static uint8_t PRESET_POP[] = {3, 0};
+const static uint8_t PRESET_ENHANCE_VOCALS[] = {4, 0};
+const static uint8_t PRESET_ELECTRONIC[] = {2, 0};
+
+const static uint8_t *preset_vals[] = {PRESET_DIRAC, PRESET_ROCK, PRESET_CLASSICAL, PRESET_POP, PRESET_ENHANCE_VOCALS, PRESET_ELECTRONIC};
+const char *preset_options[] = {"DIRAC OPTEO", "Rock", "Classical", "Pop", "Enhance vocals", "Electronic", "Custom", NULL};
+
+static int set_equalizer_preset(struct PakModule *mod, int val_idx) {
+	char buf[64];
+	if (val_idx == 6) {
+		update_eq_widget(mod, 0);
+		return 0;
+	}
+	update_eq_widget(mod, 1);
+	return transaction(mod->priv, buf, sizeof(buf), SET_EQUALIZER_PRESET, preset_vals[val_idx], 2);
+}
+
+static int set_low_lag_mode(struct PakModule *mod, int enabled) {
+	char buf[64];
+	return transaction(mod->priv, buf, sizeof(buf), SET_LOG_LAG_MODE, (uint8_t[]){enabled ? 1 : 2}, 1);
+}
+
 static int init(struct PakModule *mod) {
 	pak_rt_set_tick_interval(mod, 1000 * 1000);
 	mod->priv = calloc(1, sizeof(struct ModulePriv));
@@ -176,20 +272,19 @@ static int init(struct PakModule *mod) {
 			.u.boolv.v = 0,
 	});
 
-	const char *options[] = {"Low", "Mid", "High", "Adaptive", "Transparency Mode", "Noise cancellation", "Off", NULL};
-
 	pak_rt_set_widget(mod, "noisecancellation", &(struct PakWidget) {
 			.title = "Noise Cancellation",
 			.type = PAK_DROPDOWN,
 			.u.dropdownv = {
-					.index_value = 0,
-					.list = options
+				.index_value = -1,
+				.list = anc_options
 			}
 	});
 
 	pak_rt_set_widget(mod, "in-ear-detection", &(struct PakWidget) {
 			.title = "In-ear detection",
 			.type = PAK_BOOLEAN,
+			.disabled = 1,
 			.u.boolv.v = 0,
 	});
 
@@ -198,6 +293,15 @@ static int init(struct PakModule *mod) {
 			.type = PAK_BOOLEAN,
 			.u.boolv.v = 0,
 	});
+
+	pak_rt_set_widget(mod, "equalizer-preset", &(struct PakWidget) {
+		.title = "Equalizer Presets",
+		.type = PAK_DROPDOWN,
+		.group = PAK_GROUP_DEFAULT,
+		.u.dropdownv = { .index_value = -1, .list = preset_options },
+	});
+
+	update_eq_widget(mod, 1);
 
 	return 0;
 }
@@ -249,24 +353,15 @@ static int on_switch_screen(struct PakModule *mod, int old_screen, int new_scree
 	return 0;
 }
 
-static int set_ultra_bass(struct PakModule *mod, int v) {
-	char buf[64];
-	return transaction(mod->priv, buf, sizeof(buf), SET_ULTRA_BASS, (uint8_t[]){
-		v ? 1 : 0, // enabled
-		0x6 // bass level
-	}, 2);
-}
-
-static int set_noise_cancellation(struct PakModule *mod, int v) {
-	char buf[64];
-	return transaction(mod->priv, buf, sizeof(buf), SET_NOISE_CANCELLATION, (uint8_t[]){
-		1, 4, 0
-	}, 3);
-}
-
 static int on_prop_changed(struct PakModule *mod, int job, const char *name, struct PakWidget *prop) {
 	if (!strcmp(name, "ultrabass")) {
 		set_ultra_bass(mod, prop->u.boolv.v);
+	} else if (!strcmp(name, "equalizer-preset")) {
+		set_equalizer_preset(mod, prop->u.dropdownv.index_value);
+	} else if (!strcmp(name, "equalizer")) {
+		set_equalizer_custom_value(mod, &prop->u.equalizerv);
+	} else if (!strcmp(name, "noisecancellation")) {
+		set_noise_cancellation(mod, prop->u.dropdownv.index_value);
 	}
 	pak_global_log("on_prop_changed %s", name);
 	return 0;
@@ -278,9 +373,8 @@ static int on_run_test(struct PakModule *mod, int job) {
 	if (adapter == NULL) return -1;
 	struct PakBtDevice *dev = pak_bt_get_device(mod->bt, adapter, 0, PAK_FILTER_CONNECTED);
 	if (dev == NULL) return -2;
-	pak_debug_log(mod, "name: %s", dev->name);
+	pak_debug_log(mod, "Connecting to %s", dev->name);
 	on_try_connect_bluetooth(mod, dev, NULL, job);
-	set_noise_cancellation(mod, 0);
 	return 0;
 }
 
