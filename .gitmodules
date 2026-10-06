@@ -4,9 +4,9 @@
 [submodule "ptp2"]
 	path = ptp2
 	url = https://github.com/petabyt/ptp2
-[submodule "furble-glued"]
-	path = libfurble
-	url = https://github.com/petabyt/furble-glued
 [submodule "libfurble"]
 	path = libfurble
 	url = https://github.com/petabyt/furble-glued.git
+[submodule "jlab"]
+	path = jlab
+	url = https://github.com/petabyt/jlab.git
