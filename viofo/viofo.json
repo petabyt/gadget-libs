@@ -34,10 +34,10 @@
         "VS1",
         "MT1"
       ],
-      "wifiFilter": {
+      "wifiFilters": [{
         "ssidPattern": "VIOFO-.*",
         "defaultPassword": "12345678"
-      }
+      }]
     }
   ]
 }

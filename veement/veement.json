@@ -12,10 +12,10 @@
       "company": "Veement",
       "summary": "Veement/Veecar dashcams",
       "products": ["V300", "V200", "S80", "VT10"],
-      "wifiFilter": {
+      "wifiFilters": [{
         "ssidPattern": "V300.*",
         "defaultPassword": "12345678"
-      }
+      }]
     }
   ]
 }

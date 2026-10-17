@@ -58,8 +58,8 @@ static int init(struct PakModule *mod) {
 
 		pak_rt_set_widget(mod, "dropdown", &(struct PakWidget) {
 				.title = "Option",
-				.type = PAK_DROPDOWN,
-				.u.dropdownv = {
+				.type = PAK_COMBOBOX,
+				.u.comboboxv = {
 						.index_value = 1,
 						.list = (const char *[]) {"4.0l I6", "5.6l v8", "7.4l v8", "2.8l tdi", NULL}
 				}
@@ -68,8 +68,8 @@ static int init(struct PakModule *mod) {
 		pak_rt_set_widget(mod, "iso", &(struct PakWidget) {
 				.title = "ISO",
 				.group = PAK_GROUP_LIVEVIEW,
-				.type = PAK_DROPDOWN,
-				.u.dropdownv = {
+				.type = PAK_COMBOBOX,
+				.u.comboboxv = {
 						.index_value = -1,
 						.list = (const char *[]) {"6400", "3200", "1600", "800", "600", "400", "200", "100", NULL}
 				}
@@ -77,8 +77,8 @@ static int init(struct PakModule *mod) {
 		pak_rt_set_widget(mod, "shutter-speed", &(struct PakWidget) {
 				.title = "Shutter Speed",
 				.group = PAK_GROUP_LIVEVIEW,
-				.type = PAK_DROPDOWN,
-				.u.dropdownv = {
+				.type = PAK_COMBOBOX,
+				.u.comboboxv = {
 						.index_value = -1,
 						.list = (const char *[]) {"1/8000", "1/4000", "1/2000", "1/1000", "1/500", "1/250", "1/125", "1/60", "1/30", "1/15", "1/8", "1/4", "1/2", "1\"", "2\"", "4\"", "8\"", "15\"", "30\"", NULL}
 				}
@@ -86,8 +86,8 @@ static int init(struct PakModule *mod) {
 		pak_rt_set_widget(mod, "aperture", &(struct PakWidget) {
 				.title = "Aperture",
 				.group = PAK_GROUP_LIVEVIEW,
-				.type = PAK_DROPDOWN,
-				.u.dropdownv = {
+				.type = PAK_COMBOBOX,
+				.u.comboboxv = {
 						.index_value = -1,
 						.list = (const char *[]) {"f/1.0", "f/1.4", "f/2", "f/2.8", "f/4", "f/5.6", "f/8", "f/11", "f/16", "f/22", "f/32", NULL}
 				}
@@ -107,10 +107,6 @@ static int init(struct PakModule *mod) {
 	}
 
 	pak_rt_set_tick_interval(mod, 1000 * 200);
-	return 0;
-}
-
-static int on_try_connect_wifi(struct PakModule *mod, struct PakWiFiAdapter *handle, int job) {
 	return 0;
 }
 
@@ -193,6 +189,10 @@ static int on_prop_changed(struct PakModule *mod, int job, const char *name, str
 			.filename = "DSCF1001.JPG",
 			.mime_type = "image/jpeg",
 		});
+	} else if (!strcmp(name, "button")) {
+		pak_rt_add_wifi_connection(mod, &(struct PakWiFiApFilter){
+			.ssid_pattern = "I.*"
+		}, "camera");
 	}
 	return 0;
 }
@@ -208,6 +208,6 @@ int get_module(struct PakModule *mod) {
 	mod->on_disconnect = on_disconnect;
 	mod->on_switch_screen = on_switch_screen;
 	mod->on_custom_command = on_custom_command;
-	mod->on_setting_changed = on_prop_changed;
+	mod->on_widget_updated = on_prop_changed;
 	return 0;
 }

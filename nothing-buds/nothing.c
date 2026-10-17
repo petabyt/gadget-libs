@@ -274,8 +274,8 @@ static int init(struct PakModule *mod) {
 
 	pak_rt_set_widget(mod, "noisecancellation", &(struct PakWidget) {
 			.title = "Noise Cancellation",
-			.type = PAK_DROPDOWN,
-			.u.dropdownv = {
+			.type = PAK_COMBOBOX,
+			.u.comboboxv = {
 				.index_value = -1,
 				.list = anc_options
 			}
@@ -296,9 +296,9 @@ static int init(struct PakModule *mod) {
 
 	pak_rt_set_widget(mod, "equalizer-preset", &(struct PakWidget) {
 		.title = "Equalizer Presets",
-		.type = PAK_DROPDOWN,
+		.type = PAK_COMBOBOX,
 		.group = PAK_GROUP_DEFAULT,
-		.u.dropdownv = { .index_value = -1, .list = preset_options },
+		.u.comboboxv = { .index_value = -1, .list = preset_options },
 	});
 
 	update_eq_widget(mod, 1);
@@ -357,11 +357,11 @@ static int on_prop_changed(struct PakModule *mod, int job, const char *name, str
 	if (!strcmp(name, "ultrabass")) {
 		set_ultra_bass(mod, prop->u.boolv.v);
 	} else if (!strcmp(name, "equalizer-preset")) {
-		set_equalizer_preset(mod, prop->u.dropdownv.index_value);
+		set_equalizer_preset(mod, prop->u.comboboxv.index_value);
 	} else if (!strcmp(name, "equalizer")) {
 		set_equalizer_custom_value(mod, &prop->u.equalizerv);
 	} else if (!strcmp(name, "noisecancellation")) {
-		set_noise_cancellation(mod, prop->u.dropdownv.index_value);
+		set_noise_cancellation(mod, prop->u.comboboxv.index_value);
 	}
 	pak_global_log("on_prop_changed %s", name);
 	return 0;
@@ -385,6 +385,6 @@ int get_module(struct PakModule *mod) {
 	mod->on_run_test = on_run_test;
 	mod->on_disconnect = on_disconnect;
 	mod->on_switch_screen = on_switch_screen;
-	mod->on_setting_changed = on_prop_changed;
+	mod->on_widget_updated = on_prop_changed;
 	return 0;
 }

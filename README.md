@@ -3,11 +3,11 @@
 Collection of modules that can be run using [libpak runtime](https://github.com/petabyt/libpak/). These modules implement proprietary protocols that can communicate with gadgets such
 as cameras, earbuds, dashcams, etc.
 
-Rules for in tree projects:
+My personal rules for reverse-engineering:
 - Code made from inspecting/decompiling is not allowed in this tree (but might be included through submodule)
-- Only black box approach is allowed (and perhaps clean room)
-- LLM use in reverse-engineering can't be done through cloud models that may do data collection
-- No copyrighted blobs
+- Black box approach is preferred (and clean room only if absolutely necessary)
+- Zero data retention/training policy for LLMs
+- No copyrighted blobs or packet dumps uploaded
 
 Technique for black-box reversing on a stock Android phone:
 - Screen recording of testing app functionality
