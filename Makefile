@@ -55,7 +55,7 @@ install_fudge: $(CERT_LOC)
 	$(call add_manifest,nothing-buds/,nothing.json)
 	$(call add_manifest,goveelife/,goveelife.json)
 	$(call add_manifest,dummy/,dummy.json)
-	$(call add_manifest,ptp2/,ptp2.json)
+#	$(call add_manifest,ptp2/,ptp2.json)
 
 install_full: $(CERT_LOC)
 	mkdir -p $(BUILD_DIR)
