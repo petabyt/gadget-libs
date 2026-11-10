@@ -1,4 +1,4 @@
-OUT_DIR := ../app/src/main/assets
+OUT_DIR := ../app/src/commonMain/composeResources/files
 BUILD_DIR := build
 LIBPAK_DIR := ../libpak
 CMAKE_FLAGS := -DCMAKE_TOOLCHAIN_FILE=$(PWD)/$(LIBPAK_DIR)/toolchain/toolchain.cmake -DMAKE_EXECUTABLE=ON -DCMAKE_PROJECT_INCLUDE=$(PWD)/$(LIBPAK_DIR)/toolchain/pakrt.cmake
@@ -70,6 +70,9 @@ install_full: $(CERT_LOC)
 
 install_full_www: $(CERT_LOC)
 	$(MAKE) install_full OUT_DIR=$(PWD)/../../fudge-www/modules
+
+test:
+	$(call compile_cmake,libfuji/,libfuji.json,fuji)
 
 clean:
 	rm -rf $(OUT_DIR)/* build/
