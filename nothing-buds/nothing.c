@@ -55,7 +55,9 @@ struct __attribute__((packed)) BatteryStat {
 
 // https://developers.google.com/nearby/fast-pair/specifications/extensions/deviceinformation
 static int google_fastpair(struct PakBt *bt, struct PakBtDevice *dev) {
-	struct PakBtSocket *sock = pak_bt_connect_to_service_channel(bt, dev, "df21fe2c-2515-4fdb-8886-f12c4d67927c");
+	struct PakBtSocket *sock = pak_bt_connect_to_service_channel(bt, dev,
+																 "df21fe2c-2515-4fdb-8886-f12c4d67927c",
+																 0);
 
 	struct FastPairPacket {
 		uint8_t msggroup;
@@ -308,20 +310,22 @@ static int init(struct PakModule *mod) {
 
 static int on_try_connect_bluetooth(struct PakModule *mod, struct PakBtDevice *dev, struct PakSavedConnection *saved, int job) {
 	if (!dev->is_bonded) {
-		int rc = pak_bt_device_connect(mod->bt, dev);
+		int rc = pak_bt_device_connect(mod->bt, dev, PAK_BLOCK);
 		if (rc) {
 			pak_debug_log(mod, "Failed to connect");
 			return rc;
 		}
 
-		rc = pak_bt_device_create_bond(mod->bt, dev);
+		rc = pak_bt_device_create_bond(mod->bt, dev, PAK_BLOCK);
 		if (rc) {
 			pak_debug_log(mod, "Failed to create bond");
 			return rc;
 		}
 	}
 
-	struct PakBtSocket *conn = pak_bt_connect_to_service_channel(mod->bt, dev, "aeac4a03-dff5-498f-843a-34487cf133eb");
+	struct PakBtSocket *conn = pak_bt_connect_to_service_channel(mod->bt, dev,
+																 "aeac4a03-dff5-498f-843a-34487cf133eb",
+																 0);
 	if (conn == NULL) {
 		pak_debug_log(mod, "pak_bt_connect_to_service_channel");
 		return -1;

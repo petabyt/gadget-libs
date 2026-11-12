@@ -130,7 +130,7 @@ static int send_command(struct PakModule *mod, struct GoveeCmd *cmd) {
 
 static int on_try_connect_bluetooth(struct PakModule *mod, struct PakBtDevice *device, struct PakSavedConnection *saved, int job) {
 	mod->priv->device = device;
-	if (pak_bt_device_connect(mod->bt, device)) {
+	if (pak_bt_device_connect(mod->bt, device, PAK_BLOCK)) {
 		pak_bt_unref_device(mod->bt, device);
 		return PAK_ERR_NO_CONNECTION;
 	}

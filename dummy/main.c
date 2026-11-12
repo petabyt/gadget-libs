@@ -42,9 +42,12 @@ static int init(struct PakModule *mod) {
 		pak_rt_set_screen_supported(mod, PAK_SCREEN_INTERVALOMETER, 1);
 		pak_rt_set_storage_info(mod, "sdcard", &(struct PakStorageInfo){
 			.sorted_by = PAK_NEWEST_FIRST,
-			.n_files_total = 50,
+			.n_files_total = 10,
 		});
-
+		pak_rt_set_storage_info(mod, "sdcard2", &(struct PakStorageInfo){
+			.sorted_by = PAK_NEWEST_FIRST,
+			.n_files_total = 1000,
+		});
 		pak_rt_set_widget(mod, "button", &(struct PakWidget) {
 				.title = "A Button",
 				.type = PAK_BUTTON,
@@ -134,7 +137,7 @@ static int on_switch_screen(struct PakModule *mod, int old_screen, int new_scree
 	return 0;
 }
 
-static int on_request_file_contents(struct PakModule *mod, int job, struct PakFileHandle *file) {
+static int on_request_file_contents(struct PakModule *mod, int job, struct PakObjectHandle *file) {
 #define min(a, b)  ((a) < (b) ? (a) : (b))
 	unsigned int of = 0;
 	for (int i = 0; i < 100; i++) {
@@ -149,15 +152,17 @@ static int on_request_file_contents(struct PakModule *mod, int job, struct PakFi
 	return 0;
 }
 
-static int on_request_thumbnail(struct PakModule *mod, int job, struct PakFileHandle *file) {
+static int on_request_thumbnail(struct PakModule *mod, int job, struct PakObjectHandle *file) {
 	usleep(100000);
 	return pak_rt_add_file_thumbnail(mod, file, _dummy_thumb_jpg, sizeof(_dummy_thumb_jpg));
 }
 
-static int on_request_file_metadata(struct PakModule *mod, int job, struct PakFileHandle *file) {
+static int on_request_file_metadata(struct PakModule *mod, int job, struct PakObjectHandle *file) {
 	usleep(100000);
 	char name[32];
-	sprintf(name, "ABCD%04u.JPG", file->index_in_view * 13);
+	const char *prefix = "ABCD";
+	if (!strcmp(file->storage_name, "sdcard2")) prefix = "EFGH";
+	sprintf(name, "%s%04u.JPG", prefix, file->index_in_view * 13);
 	pak_rt_add_file_metadata(mod, file, &(struct PakFileMetadata){
 		.filename = name,
 		.file_size = 123,
@@ -166,7 +171,7 @@ static int on_request_file_metadata(struct PakModule *mod, int job, struct PakFi
 	return 0;
 }
 
-static int on_request_liveview_frame(struct PakModule *mod, int job, struct PakFileHandle *handle) {
+static int on_request_liveview_frame(struct PakModule *mod, int job, struct PakObjectHandle *handle) {
 	return pak_rt_add_file_contents(mod, handle, _dummy_jpeg_jpg, sizeof(_dummy_jpeg_jpg), 0, 0);
 }
 
@@ -185,14 +190,10 @@ static int on_prop_changed(struct PakModule *mod, int job, const char *name, str
 	pak_global_log("on_prop_changed %s", name);
 	if (!strcmp(name, "img")) {
 		static int n_downloaded = 0;
-		pak_rt_add_file_metadata(mod, &(struct PakFileHandle){.index_in_view = n_downloaded++, .storage_name = "live"}, &(struct PakFileMetadata){
+		pak_rt_add_file_metadata(mod, &(struct PakObjectHandle){.index_in_view = n_downloaded++, .storage_name = "live"}, &(struct PakFileMetadata){
 			.filename = "DSCF1001.JPG",
 			.mime_type = "image/jpeg",
 		});
-	} else if (!strcmp(name, "button")) {
-		pak_rt_add_wifi_connection(mod, &(struct PakWiFiApFilter){
-			.ssid_pattern = "I.*"
-		}, "camera");
 	}
 	return 0;
 }
@@ -200,7 +201,7 @@ static int on_prop_changed(struct PakModule *mod, int job, const char *name, str
 int get_module(struct PakModule *mod) {
 	mod->init = init;
 	mod->on_request_file_thumbnail = on_request_thumbnail;
-	mod->on_request_file_metadata = on_request_file_metadata;
+	mod->on_request_object_info = on_request_file_metadata;
 	mod->on_request_liveview_frame = on_request_liveview_frame;
 	mod->on_request_file_contents = on_request_file_contents;
 	mod->on_find_connection = on_find_connection;

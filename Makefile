@@ -1,4 +1,4 @@
-OUT_DIR := ../app/src/commonMain/composeResources/files
+OUT_DIR := ../app/src/androidMain/assets
 BUILD_DIR := build
 LIBPAK_DIR := ../libpak
 CMAKE_FLAGS := -DCMAKE_TOOLCHAIN_FILE=$(PWD)/$(LIBPAK_DIR)/toolchain/toolchain.cmake -DMAKE_EXECUTABLE=ON -DCMAKE_PROJECT_INCLUDE=$(PWD)/$(LIBPAK_DIR)/toolchain/pakrt.cmake
