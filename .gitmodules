@@ -1,12 +1,21 @@
 [submodule "libfuji"]
 	path = libfuji
-	url = git@github.com:petabyt/libfuji.git
+	url = https://github.com/petabyt/libfuji.git
 [submodule "ptp2"]
 	path = ptp2
 	url = https://github.com/petabyt/ptp2
 [submodule "libfurble"]
 	path = libfurble
 	url = https://github.com/petabyt/furble-glued.git
+[submodule "veement"]
+	path = veement
+	url = https://github.com/petabyt/veement.git
+[submodule "viofo"]
+	path = viofo
+	url = https://github.com/petabyt/viofo.git
+[submodule "nothing"]
+	path = nothing
+	url = https://github.com/petabyt/nothing.git
 [submodule "jlab"]
 	path = jlab
 	url = https://github.com/petabyt/jlab.git
