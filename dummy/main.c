@@ -42,11 +42,11 @@ static int init(struct PakModule *mod) {
 		pak_rt_set_screen_supported(mod, PAK_SCREEN_INTERVALOMETER, 1);
 		pak_rt_set_storage_info(mod, "sdcard", &(struct PakStorageInfo){
 			.sorted_by = PAK_NEWEST_FIRST,
-			.n_files_total = 10,
+			.n_files_root = 10,
 		});
 		pak_rt_set_storage_info(mod, "sdcard2", &(struct PakStorageInfo){
 			.sorted_by = PAK_NEWEST_FIRST,
-			.n_files_total = 1000,
+			.n_files_root = 1000,
 		});
 		pak_rt_set_widget(mod, "button", &(struct PakWidget) {
 				.title = "A Button",
@@ -99,8 +99,8 @@ static int init(struct PakModule *mod) {
 		pak_rt_set_screen_supported(mod, PAK_SCREEN_DASHBOARD, 1);
 		pak_rt_set_screen_supported(mod, PAK_SCREEN_LIVE_FEED, 1);
 		pak_rt_set_storage_info(mod, "live", &(struct PakStorageInfo){
-			.n_files_total = 1,
-			.is_live = 1,
+			.n_files_root = 1,
+			.type = PAK_LIVE_QUEUE,
 		});
 		mod->priv->is_live = 1;
 		pak_rt_set_widget(mod, "img", &(struct PakWidget) {
